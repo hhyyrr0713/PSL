@@ -35,7 +35,18 @@ BASE_COLUMNS = [
     "brand_id",
     "brand_group_id",
     "product_sale_type",
+
+    # 기존 season
     "season",
+
+    # ===== 추가: seasonName 계열 =====
+    "season_name_raw",
+    "season_spring",
+    "season_summer",
+    "season_fall",
+    "season_winter",
+    "season_all",
+
     "original_price",
     "sale_price",
     "discount_rate",
@@ -50,10 +61,22 @@ BASE_COLUMNS = [
     "size_stock_detail",
     "color_total_stock",
     "color_stock_detail",
+    "lf_category_l1",
+    "lf_category_l2",
+    "lf_category_l3",
+
+    # 질스튜어트용 컬럼도 유지하고 싶으면 포함
+    "display_category_id",
+    "soldout",
 ]
 
 NUMERIC_INT_COLUMNS = [
     "product_sale_type",
+    "season_spring",
+    "season_summer",
+    "season_fall",
+    "season_winter",
+    "season_all",
     "original_price",
     "sale_price",
     "discount_rate",
@@ -88,7 +111,6 @@ AGE_KEYS = [
     "40s_plus",
 ]
 
-# 브랜드별 무드 prior (합계 10)
 BRAND_MOOD_PRIORS = {
     "allegri": {
         "business_casual": 6,
@@ -134,7 +156,6 @@ BRAND_MOOD_PRIORS = {
     },
 }
 
-# 브랜드별 연령 prior (합계 10, 약한 보정용)
 BRAND_AGE_PRIORS = {
     "allegri": {"20s": 2, "30s": 4, "40s_plus": 4},
     "daks men": {"20s": 0, "30s": 2, "40s_plus": 8},
@@ -144,7 +165,6 @@ BRAND_AGE_PRIORS = {
     "tngt": {"20s": 4, "30s": 4, "40s_plus": 2},
 }
 
-# 카테고리별 무드 prior (합계 10)
 CATEGORY_MOOD_PRIORS = {
     "자켓": {
         "business_casual": 5,
@@ -218,9 +238,7 @@ CATEGORY_MOOD_PRIORS = {
     },
 }
 
-# 상품명 키워드 보정
 KEYWORD_MOOD_ADJUSTMENTS = {
-    # business_casual / formal
     "블레이저": {"business_casual": 2, "formal": 2},
     "blazer": {"business_casual": 2, "formal": 2},
     "슬랙스": {"business_casual": 2, "formal": 2},
@@ -238,13 +256,9 @@ KEYWORD_MOOD_ADJUSTMENTS = {
     "셋업": {"business_casual": 2, "formal": 2},
     "setup": {"business_casual": 2, "formal": 2},
     "set up": {"business_casual": 2, "formal": 2},
-
-    # 원단/패브릭 기반 보정
     "zegna": {"minimal": 1, "formal": 2},
     "tollegno": {"minimal": 1, "formal": 2},
     "canclini": {"business_casual": 1, "formal": 2},
-
-    # casual / street
     "후드": {"casual": 2, "street": 1},
     "hood": {"casual": 2, "street": 1},
     "후디": {"casual": 2, "street": 1},
@@ -260,8 +274,6 @@ KEYWORD_MOOD_ADJUSTMENTS = {
     "graphic": {"street": 2, "casual": 1},
     "프린트": {"street": 1, "casual": 1},
     "print": {"street": 1, "casual": 1},
-
-    # minimal
     "미니멀": {"minimal": 3},
     "minimal": {"minimal": 3},
     "에센셜": {"minimal": 3},
@@ -287,7 +299,6 @@ FIT_MOOD_ADJUSTMENTS = {
     "unknown": {},
 }
 
-# 소재는 무드가 아니라 고급감/질감용
 MATERIAL_LUXURY_MAP = {
     "cashmere": 5,
     "wool": 4,
@@ -333,18 +344,10 @@ CATEGORY_TO_ITEM_ROLE = {
 }
 
 FIT_KEYWORDS = {
-    "oversized": [
-        "오버핏", "oversized", "overfit", "세미오버", "오버"
-    ],
-    "wide": [
-        "와이드", "wide", "루즈핏", "loose fit", "loose", "루즈"
-    ],
-    "relaxed": [
-        "릴렉스", "relaxed", "여유핏", "comfort", "컴포트", "relax fit"
-    ],
-    "slim": [
-        "슬림", "slim", "스키니", "skinny", "테이퍼드", "tapered", "슬림 핏", "slim fit"
-    ],
+    "oversized": ["오버핏", "oversized", "overfit", "세미오버", "오버"],
+    "wide": ["와이드", "wide", "루즈핏", "loose fit", "loose", "루즈"],
+    "relaxed": ["릴렉스", "relaxed", "여유핏", "comfort", "컴포트", "relax fit"],
+    "slim": ["슬림", "slim", "스키니", "skinny", "테이퍼드", "tapered", "슬림 핏", "slim fit"],
     "regular": [
         "레귤러", "regular", "basic", "standard", "스탠다드",
         "클래식핏", "regular fit", "new regular fit", "레귤러 핏", "스탠다드 핏"
@@ -371,13 +374,18 @@ PATTERN_KEYWORDS = {
 # =========================
 # 5. 유틸 함수
 # =========================
+def safe_str(value, default: str = "") -> str:
+    if pd.isna(value):
+        return default
+    return str(value).strip()
+
 def to_int_series(series: pd.Series) -> pd.Series:
     return (
         series.astype(str)
         .str.replace(",", "", regex=False)
         .str.replace("원", "", regex=False)
         .str.replace("%", "", regex=False)
-        .replace({"None": np.nan, "nan": np.nan, "": np.nan})
+        .replace({"None": np.nan, "nan": np.nan, "": np.nan, "<NA>": np.nan})
         .pipe(pd.to_numeric, errors="coerce")
         .fillna(0)
         .astype(int)
@@ -387,7 +395,7 @@ def to_float_series(series: pd.Series) -> pd.Series:
     return (
         series.astype(str)
         .str.replace(",", "", regex=False)
-        .replace({"None": np.nan, "nan": np.nan, "": np.nan})
+        .replace({"None": np.nan, "nan": np.nan, "": np.nan, "<NA>": np.nan})
         .pipe(pd.to_numeric, errors="coerce")
         .fillna(0.0)
         .astype(float)
@@ -459,11 +467,23 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
 def preprocess_string_id_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
+    if "product_code" in df.columns:
+        df["product_code"] = df["product_code"].astype(str).str.strip()
+
     if "brand_id" in df.columns:
         df["brand_id"] = df["brand_id"].astype(str).str.strip()
 
     if "brand_group_id" in df.columns:
         df["brand_group_id"] = df["brand_group_id"].astype(str).str.strip()
+
+    for col in [
+        "brand_name", "season", "season_name_raw",
+        "size_stock_detail", "color_stock_detail",
+        "lf_category_l1", "lf_category_l2", "lf_category_l3",
+        "display_category_id", "soldout"
+    ]:
+        if col in df.columns:
+            df[col] = df[col].fillna("").astype(str).str.strip()
 
     return df
 
@@ -482,10 +502,55 @@ def preprocess_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_code_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-
     df["product_code"] = df["product_code"].astype(str).str.strip()
     df["category_code"] = df["product_code"].str[2:4]
     df["color_code"] = df["product_code"].str[-2:]
+    return df
+
+def normalize_season_name(text) -> str:
+    if pd.isna(text):
+        return ""
+    text = str(text).strip()
+    if not text:
+        return ""
+    text = text.replace("/", ",")
+    text = text.replace("·", ",")
+    text = text.replace("|", ",")
+    text = re.sub(r"\s*,\s*", ", ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+def recompute_season_flags(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    if "season_name_raw" not in df.columns:
+        df["season_name_raw"] = ""
+
+    df["season_name_raw"] = df["season_name_raw"].fillna("").apply(normalize_season_name)
+    text_series = df["season_name_raw"].astype(str)
+    lower_series = text_series.str.lower()
+
+    season_all = (
+        text_series.str.contains("사계절", na=False)
+        | text_series.str.contains("4계절", na=False)
+        | text_series.str.contains("올시즌", na=False)
+        | lower_series.str.contains("all season", na=False)
+        | (lower_series == "all")
+    )
+
+    spring = text_series.str.contains("봄", na=False)
+    summer = text_series.str.contains("여름", na=False)
+    fall = text_series.str.contains("가을", na=False)
+    winter = text_series.str.contains("겨울", na=False)
+
+    first_half = text_series.str.contains("상반기", na=False)
+    second_half = text_series.str.contains("하반기", na=False)
+
+    df["season_all"] = season_all.astype(int)
+    df["season_spring"] = (spring | first_half | season_all).astype(int)
+    df["season_summer"] = (summer | first_half | season_all).astype(int)
+    df["season_fall"] = (fall | second_half | season_all).astype(int)
+    df["season_winter"] = (winter | second_half | season_all).astype(int)
 
     return df
 
@@ -557,22 +622,9 @@ def normalize_size_value(size_val: str, size_type: str) -> str:
         return free_alias[size_val]
 
     top_alpha_map = {
-        "S": "95",
-        "M": "100",
-        "L": "105",
-        "XL": "110",
-        "XXL": "115",
-        "2XL": "115",
-        "0S": "95",
-        "00S": "95",
-        "0M": "100",
-        "00M": "100",
-        "0L": "105",
-        "00L": "105",
-        "0XL": "110",
-        "00XL": "110",
-        "0XXL": "115",
-        "00XXL": "115",
+        "S": "95", "M": "100", "L": "105", "XL": "110", "XXL": "115", "2XL": "115",
+        "0S": "95", "00S": "95", "0M": "100", "00M": "100", "0L": "105", "00L": "105",
+        "0XL": "110", "00XL": "110", "0XXL": "115", "00XXL": "115",
     }
 
     if size_val in top_alpha_map:
@@ -580,29 +632,18 @@ def normalize_size_value(size_val: str, size_type: str) -> str:
 
     if size_type == "top":
         top_numeric_map = {
-            "46": "90", "046": "90",
-            "48": "95", "048": "95",
-            "50": "100", "050": "100",
-            "52": "105", "052": "105",
-            "54": "110", "054": "110",
-            "56": "115", "056": "115",
+            "46": "90", "046": "90", "48": "95", "048": "95", "50": "100", "050": "100",
+            "52": "105", "052": "105", "54": "110", "054": "110", "56": "115", "056": "115",
         }
-
         if size_val in top_numeric_map:
             return top_numeric_map[size_val]
 
     if size_type == "bottom":
         bottom_code_map = {
-            "78": "30", "078": "30",
-            "82": "32", "082": "32",
-            "86": "34", "086": "34",
-            "88": "35", "088": "35",
-            "90": "36", "090": "36",
-            "94": "38", "094": "38",
-            "96": "39", "096": "39",
-            "98": "40", "098": "40",
+            "78": "30", "078": "30", "82": "32", "082": "32", "86": "34", "086": "34",
+            "88": "35", "088": "35", "90": "36", "090": "36", "94": "38", "094": "38",
+            "96": "39", "096": "39", "98": "40", "098": "40",
         }
-
         if size_val in bottom_code_map:
             return bottom_code_map[size_val]
 
@@ -613,15 +654,12 @@ def normalize_size_value(size_val: str, size_type: str) -> str:
 
 def size_sort_key(x):
     x = str(x).strip()
-
     if x == "FREE":
         return (2, x)
     if x == "XXX":
         return (3, x)
-
     if x.isdigit():
         return (0, int(x))
-
     return (1, x)
 
 def extract_available_sizes_from_row(row) -> list:
@@ -651,10 +689,7 @@ def extract_available_sizes_from_row(row) -> list:
                     result.append(norm_size)
         return sorted(list(set(result)), key=size_sort_key)
 
-    pattern_basic = re.findall(
-        r"([A-Za-z0-9]+)\s*:\s*(\d+)",
-        text
-    )
+    pattern_basic = re.findall(r"([A-Za-z0-9]+)\s*:\s*(\d+)", text)
 
     if pattern_basic:
         for size_val, stock in pattern_basic:
@@ -689,10 +724,8 @@ def extract_available_sizes_from_row(row) -> list:
 
                     for key, value in item.items():
                         key_lower = str(key).lower()
-
                         if key_lower in ["size", "option", "name", "label"]:
                             size_val = normalize_size_value(value, size_type)
-
                         if key_lower in ["stock", "qty", "quantity", "count"]:
                             try:
                                 stock_val = float(value)
@@ -704,12 +737,10 @@ def extract_available_sizes_from_row(row) -> list:
 
                 elif isinstance(item, (list, tuple)) and len(item) >= 2:
                     size_val = normalize_size_value(item[0], size_type)
-
                     try:
                         stock_val = float(item[1])
                     except Exception:
                         stock_val = 0
-
                     if size_val and stock_val > 0:
                         result.append(size_val)
 
@@ -837,7 +868,6 @@ def build_mood_scores(brand_name, category_name, product_name, fit_type):
     scores = init_score_dict(MOOD_KEYS)
 
     norm_brand = normalize_brand_name(brand_name)
-
     brand_prior = BRAND_MOOD_PRIORS.get(norm_brand, {})
     add_scores(scores, brand_prior, weight=1.0)
 
@@ -862,10 +892,127 @@ def build_mood_scores(brand_name, category_name, product_name, fit_type):
 
 def build_age_scores(brand_name):
     norm_brand = normalize_brand_name(brand_name)
-    return BRAND_AGE_PRIORS.get(
-        norm_brand,
-        {"20s": 3, "30s": 4, "40s_plus": 3}
-    )
+    return BRAND_AGE_PRIORS.get(norm_brand, {"20s": 3, "30s": 4, "40s_plus": 3})
+
+# ===== subtype 파생 =====
+def derive_sleeve_length_type(row) -> str:
+    l2 = safe_str(row.get("lf_category_l2", ""))
+    l3 = safe_str(row.get("lf_category_l3", ""))
+    product_name = safe_str(row.get("product_name", "")).lower()
+
+    text = f"{l2} {l3} {product_name}"
+
+    if "반팔" in text or "숏 슬리브" in text or "short sleeve" in text:
+        return "short_sleeve"
+    if "긴팔" in text or "롱 슬리브" in text or "long sleeve" in text:
+        return "long_sleeve"
+    if "민소매" in text or "슬리브리스" in text or "sleeveless" in text:
+        return "sleeveless"
+
+    return "unknown"
+
+def derive_pants_length_type(row) -> str:
+    l2 = safe_str(row.get("lf_category_l2", ""))
+    l3 = safe_str(row.get("lf_category_l3", ""))
+    product_name = safe_str(row.get("product_name", "")).lower()
+
+    text = f"{l2} {l3} {product_name}"
+
+    if (
+        "숏" in text
+        or "쇼츠" in text
+        or "shorts" in text
+        or "반바지" in text
+        or "버뮤다" in text
+        or "bermuda" in text
+        or "하프팬츠" in text
+        or "하프 팬츠" in text
+        or "half pants" in text
+        or "5부" in text
+        or "6부" in text
+        or "7부" in text
+    ):
+        return "shorts"
+
+    if "롱팬츠" in text or "긴바지" in text or "팬츠" in text or "trousers" in text:
+        return "long"
+
+    return "unknown"
+
+def derive_top_subtype(row) -> str:
+    l2 = safe_str(row.get("lf_category_l2", ""))
+    l3 = safe_str(row.get("lf_category_l3", ""))
+    product_name = safe_str(row.get("product_name", "")).lower()
+    item_role = safe_str(row.get("item_role", "")).lower()
+
+    text = f"{l2} {l3} {product_name}"
+
+    if item_role not in {"top", "outer"}:
+        return "unknown"
+
+    if "후드" in text or "hoodie" in text or "hood" in text:
+        return "hoodie"
+    if "스웻" in text or "맨투맨" in text or "sweatshirt" in text or "sweat shirt" in text:
+        return "sweatshirt"
+    if "반집업" in text or "하프 집업" in text or "half zip" in text or "half-zip" in text:
+        return "half_zip"
+
+    if "티셔츠" in text:
+        sleeve_type = derive_sleeve_length_type(row)
+        if sleeve_type == "short_sleeve":
+            return "short_sleeve_tshirt"
+        if sleeve_type == "long_sleeve":
+            return "long_sleeve_tshirt"
+        return "tshirt"
+
+    if "셔츠" in text:
+        return "shirt"
+    if "니트" in text or "sweater" in text or "터틀넥" in text or "turtleneck" in text:
+        return "knit"
+    if "가디건" in text or "cardigan" in text:
+        return "cardigan"
+    if "베스트" in text or "vest" in text:
+        return "vest"
+    if "바람막이" in text or "windbreaker" in text:
+        return "windbreaker"
+    if "점퍼" in text or "jumper" in text or "블루종" in text or "blouson" in text:
+        return "jumper"
+    if "자켓" in text or "jacket" in text or "블레이저" in text or "blazer" in text:
+        return "jacket"
+    if "코트" in text or "coat" in text or "트렌치" in text or "trench" in text:
+        return "coat"
+
+    return "unknown"
+
+def derive_bottom_subtype(row) -> str:
+    l2 = safe_str(row.get("lf_category_l2", ""))
+    l3 = safe_str(row.get("lf_category_l3", ""))
+    product_name = safe_str(row.get("product_name", "")).lower()
+    item_role = safe_str(row.get("item_role", "")).lower()
+
+    text = f"{l2} {l3} {product_name}"
+
+    if item_role != "bottom":
+        return "unknown"
+
+    is_shorts = derive_pants_length_type(row) == "shorts"
+
+    if "슬랙스" in text or "slacks" in text:
+        return "slacks_shorts" if is_shorts else "slacks"
+    if "데님팬츠" in text or "데님" in text or "jean" in text or "jeans" in text:
+        return "denim_shorts" if is_shorts else "denim"
+    if "치노" in text or "chino" in text:
+        return "chino_shorts" if is_shorts else "chino"
+    if "카고" in text or "cargo" in text:
+        return "cargo_shorts" if is_shorts else "cargo"
+    if "조거" in text or "jogger" in text or "트레이닝" in text or "sweatpants" in text:
+        return "jogger_shorts" if is_shorts else "jogger"
+    if "팬츠" in text or "trousers" in text:
+        return "shorts" if is_shorts else "general_pants"
+    if is_shorts:
+        return "shorts"
+
+    return "unknown"
 
 # =========================
 # 7. 파일 목록 확인
@@ -906,6 +1053,7 @@ print(df.shape)
 df = standardize_columns(df)
 df = preprocess_string_id_columns(df)
 df = preprocess_numeric_columns(df)
+df = recompute_season_flags(df)
 df = add_code_columns(df)
 
 # =========================
@@ -935,6 +1083,20 @@ print(len(df))
 # =========================
 basic_check(df)
 show_unique_codes(df)
+
+print("\n===== season_name_raw 분포 상위 30 =====")
+print(df["season_name_raw"].fillna("(null)").value_counts(dropna=False).head(30))
+
+print("\n===== 시즌 플래그 합계 =====")
+print(
+    df[[
+        "season_spring",
+        "season_summer",
+        "season_fall",
+        "season_winter",
+        "season_all",
+    ]].sum()
+)
 
 # =========================
 # 12. master_table_step1 저장
@@ -1118,16 +1280,9 @@ print("\n===== available_size_list sample 20 =====")
 print(
     df[
         [
-            "product_code",
-            "product_name",
-            "category_name",
-            "size_type",
-            "size_stock_detail",
-            "size_total_stock",
-            "available_size_list",
-            "available_size_count",
-            "available_size_text",
-            "has_stock",
+            "product_code", "product_name", "category_name", "size_type",
+            "size_stock_detail", "size_total_stock", "available_size_list",
+            "available_size_count", "available_size_text", "has_stock",
         ]
     ]
     .head(20)
@@ -1170,14 +1325,8 @@ df["review_count_part"] = np.minimum(df["review_count"], 100) * 5
 df["review_score_part"] = np.minimum(df["review_score"], 5.0) * 60
 
 df["newproductscore"] = np.select(
-    [
-        df["product_sale_type"] == 1,
-        df["product_sale_type"] == 2,
-    ],
-    [
-        500,
-        200,
-    ],
+    [df["product_sale_type"] == 1, df["product_sale_type"] == 2],
+    [500, 200],
     default=0
 )
 
@@ -1194,13 +1343,8 @@ print("\n===== score summary =====")
 print(
     df[
         [
-            "purchase_part",
-            "wish_part",
-            "view_part",
-            "review_count_part",
-            "review_score_part",
-            "newproductscore",
-            "final_score",
+            "purchase_part", "wish_part", "view_part", "review_count_part",
+            "review_score_part", "newproductscore", "final_score",
         ]
     ].describe()
 )
@@ -1208,25 +1352,11 @@ print(
 top20 = (
     df[
         [
-            "product_code",
-            "product_name",
-            "brand_name",
-            "brand_id",
-            "brand_group_id",
-            "category_name",
-            "size_type",
-            "color_name",
-            "color_group",
-            "price_range",
-            "sale_price",
-            "purchase_count",
-            "wish_count",
-            "viewing_count",
-            "review_count",
-            "review_score",
-            "product_sale_type",
-            "available_size_text",
-            "final_score",
+            "product_code", "product_name", "brand_name", "brand_id", "brand_group_id",
+            "category_name", "size_type", "color_name", "color_group", "price_range",
+            "sale_price", "purchase_count", "wish_count", "viewing_count",
+            "review_count", "review_score", "product_sale_type",
+            "available_size_text", "final_score",
         ]
     ]
     .sort_values("final_score", ascending=False)
@@ -1244,6 +1374,11 @@ df["item_role"] = df["category_name"].apply(derive_item_role)
 df["fit_type"] = df["product_name"].apply(derive_fit_type)
 df["material_type"] = df["product_name"].apply(derive_material_type)
 df["pattern_type"] = df["product_name"].apply(derive_pattern_type)
+
+df["sleeve_length_type"] = df.apply(derive_sleeve_length_type, axis=1)
+df["pants_length_type"] = df.apply(derive_pants_length_type, axis=1)
+df["top_subtype"] = df.apply(derive_top_subtype, axis=1)
+df["bottom_subtype"] = df.apply(derive_bottom_subtype, axis=1)
 
 mood_results = df.apply(
     lambda row: build_mood_scores(
@@ -1273,31 +1408,30 @@ for age_key in AGE_KEYS:
 df["luxury_level"] = df["material_type"].apply(derive_luxury_level)
 df["texture_class"] = df["material_type"].apply(derive_texture_class)
 
+print("\n===== sleeve_length_type 분포 =====")
+print(df["sleeve_length_type"].value_counts(dropna=False))
+
+print("\n===== pants_length_type 분포 =====")
+print(df["pants_length_type"].value_counts(dropna=False))
+
+print("\n===== top_subtype 분포 상위 30 =====")
+print(df["top_subtype"].value_counts(dropna=False).head(30))
+
+print("\n===== bottom_subtype 분포 상위 30 =====")
+print(df["bottom_subtype"].value_counts(dropna=False).head(30))
+
 print("\n===== styling columns sample 20 =====")
 print(
     df[
         [
-            "brand_name",
-            "category_name",
-            "product_name",
-            "item_role",
-            "fit_type",
-            "material_type",
-            "pattern_type",
-            "primary_mood",
-            "secondary_mood",
-            "display_mood_tag",
-            "mood_gap_1_2",
-            "mood_business_casual",
-            "mood_casual",
-            "mood_street",
-            "mood_minimal",
-            "mood_formal",
-            "age_20s",
-            "age_30s",
-            "age_40s_plus",
-            "luxury_level",
-            "texture_class",
+            "brand_name", "category_name", "product_name", "lf_category_l2", "lf_category_l3",
+            "item_role", "sleeve_length_type", "pants_length_type",
+            "top_subtype", "bottom_subtype",
+            "fit_type", "material_type", "pattern_type",
+            "primary_mood", "secondary_mood", "display_mood_tag", "mood_gap_1_2",
+            "mood_business_casual", "mood_casual", "mood_street", "mood_minimal", "mood_formal",
+            "age_20s", "age_30s", "age_40s_plus",
+            "luxury_level", "texture_class",
         ]
     ]
     .head(20)
@@ -1322,8 +1456,76 @@ print(df["material_type"].value_counts(dropna=False))
 print("\n===== item_role 분포 =====")
 print(df["item_role"].value_counts(dropna=False))
 
-# 디버깅 끝나면 제거 가능
-# df = df.drop(columns=["mood_score_dict", "age_score_dict"])
+# =========================
+# role-aware unknown 정리
+# =========================
+
+# 문자열 정리
+for col in ["item_role", "sleeve_length_type", "pants_length_type", "top_subtype", "bottom_subtype"]:
+    if col in df.columns:
+        df[col] = df[col].fillna("").astype(str).str.strip()
+
+# 표준값 통일
+for col in ["sleeve_length_type", "pants_length_type", "top_subtype", "bottom_subtype"]:
+    if col in df.columns:
+        df[col] = df[col].replace({
+            "": "unknown",
+            "nan": "unknown",
+            "None": "unknown",
+        })
+
+# 1) sleeve_length_type
+# top일 때만 의미 있음
+if "item_role" in df.columns and "sleeve_length_type" in df.columns:
+    df.loc[df["item_role"] != "top", "sleeve_length_type"] = "not_applicable"
+
+# 2) pants_length_type
+# bottom일 때만 의미 있음
+if "item_role" in df.columns and "pants_length_type" in df.columns:
+    df.loc[df["item_role"] != "bottom", "pants_length_type"] = "not_applicable"
+
+# 3) top_subtype
+# top일 때만 의미 있음
+if "item_role" in df.columns and "top_subtype" in df.columns:
+    df.loc[df["item_role"] != "top", "top_subtype"] = "not_applicable"
+
+# 4) bottom_subtype
+# bottom일 때만 의미 있음
+if "item_role" in df.columns and "bottom_subtype" in df.columns:
+    df.loc[df["item_role"] != "bottom", "bottom_subtype"] = "not_applicable"
+
+
+# =========================
+# 확인 출력
+# =========================
+print("\n===== role-aware 정리 후 분포 =====")
+
+print("\n===== sleeve_length_type 분포 =====")
+print(df["sleeve_length_type"].value_counts(dropna=False))
+
+print("\n===== pants_length_type 분포 =====")
+print(df["pants_length_type"].value_counts(dropna=False))
+
+print("\n===== top_subtype 분포 상위 30 =====")
+print(df["top_subtype"].value_counts(dropna=False).head(30))
+
+print("\n===== bottom_subtype 분포 상위 30 =====")
+print(df["bottom_subtype"].value_counts(dropna=False).head(30))
+
+# =========================
+# role별 진짜 unknown 확인
+# =========================
+print("\n===== top만 필터한 sleeve_length_type 분포 =====")
+print(df[df["item_role"] == "top"]["sleeve_length_type"].value_counts(dropna=False))
+
+print("\n===== bottom만 필터한 pants_length_type 분포 =====")
+print(df[df["item_role"] == "bottom"]["pants_length_type"].value_counts(dropna=False))
+
+print("\n===== top만 필터한 top_subtype 분포 =====")
+print(df[df["item_role"] == "top"]["top_subtype"].value_counts(dropna=False).head(30))
+
+print("\n===== bottom만 필터한 bottom_subtype 분포 =====")
+print(df[df["item_role"] == "bottom"]["bottom_subtype"].value_counts(dropna=False).head(30))
 
 # =========================
 # 21. 최종 저장

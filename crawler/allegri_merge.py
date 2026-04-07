@@ -1,149 +1,165 @@
-import requests
+import os
 import pandas as pd
-import time
 
-COMMON_HEADERS = {
-    "Accept": "application/json, text/plain, */*",
-    "Content-Type": "application/json",
-    "Origin": "https://www.lfmall.co.kr",
-    "Referer": "https://www.lfmall.co.kr/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
-    "DEVICE-TYPE": "2",
-    "BUILD-VERSION": "20260316@8810db5",
-    "X-REQUEST-TOKEN": "i8b0/FkpFTQbzQj0x/x4PkbFA1T9p0uVDAIfXjuIxYk=",
-    "X-XSRF-TOKEN": "1db9b2f5-acd0-48fb-af72-710613a7a249",
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 
-COMMON_COOKIES = {
-    "XSRF-TOKEN": "1db9b2f5-acd0-48fb-af72-710613a7a249",
-    "JSESSIONID": "fc1c8108-adec-4a31-a9ca-2d1c042c3176",
-}
+FILE_LIST = [
+    "allegri_products_enriched_all.csv",
+    "daks_men_products_enriched_all.csv",
+    "hazzys_men_products_enriched_all.csv",
+    "ilcorso_products_enriched_all.csv",
+    "jillstuartnewyork_men_products_enriched_all.csv",
+    "tngt_men_products_enriched_all.csv",
+]
 
-LIST_URL = "https://nxapi.lfmall.co.kr/exhibition/search/v1/brandGroup/1897"
-
-CSV_PATH = "../data/allegri_products_enriched_all.csv"
-SAVE_PATH = "../data/allegri_products_enriched_all_fixed.csv"
+SAVE_PATH = os.path.join(DATA_DIR, "master_table_step_season.csv")
 
 
-def get_list_page(page: int) -> dict:
-    payload = {
-        "brandGroupPageWithFixedTid": False,
-        "defaultSearchYn": "N",
-        "sendLogYN": "N",
-        "page": page,
-        "size": 20,
-        "saleType": [1, 2],
-        "order": "popular",
-        "aggs": [
-            "saleType",
-            "colors",
-            "season",
-            "styleYear",
-            "brandGroup",
-            "gender",
-            "searchCategory",
-            "price",
-            "prop1",
-            "prop2",
-            "size1",
-            "size2",
-            "benefit",
-            "review",
-            "atcrIsseYn",
-            "eventMasters",
-            "categories",
-        ],
-    }
+def normalize_season_name(text) -> str:
+    if pd.isna(text):
+        return ""
 
-    response = requests.post(
-        LIST_URL,
-        headers=COMMON_HEADERS,
-        cookies=COMMON_COOKIES,
-        json=payload,
-        timeout=10,
+    text = str(text).strip()
+    if not text:
+        return ""
+
+    text = text.replace("/", ",")
+    text = text.replace("·", ",")
+    text = text.replace("|", ",")
+    text = " ".join(text.split())
+
+    return text
+
+
+def recompute_season_flags(df: pd.DataFrame) -> pd.DataFrame:
+    df["season_name_raw"] = df["season_name_raw"].fillna("").apply(normalize_season_name)
+
+    text_series = df["season_name_raw"].astype(str)
+
+    lower_series = text_series.str.lower()
+
+    season_all = (
+        text_series.str.contains("사계절", na=False)
+        | text_series.str.contains("4계절", na=False)
+        | text_series.str.contains("올시즌", na=False)
+        | lower_series.str.contains("all season", na=False)
+        | (lower_series == "all")
     )
-    response.raise_for_status()
-    return response.json()
 
+    spring = text_series.str.contains("봄", na=False)
+    summer = text_series.str.contains("여름", na=False)
+    fall = text_series.str.contains("가을", na=False)
+    winter = text_series.str.contains("겨울", na=False)
 
-def collect_product_sale_type() -> pd.DataFrame:
-    print("첫 페이지 요청 중...")
-    first_data = get_list_page(1)
+    # 후처리용 임시 규칙
+    first_half = text_series.str.contains("상반기", na=False)
+    second_half = text_series.str.contains("하반기", na=False)
 
-    total_count = first_data["body"]["results"]["total"]
-    total_page = first_data["body"]["results"]["totalPage"]
+    df["season_all"] = season_all.astype(int)
+    df["season_spring"] = (spring | first_half | season_all).astype(int)
+    df["season_summer"] = (summer | first_half | season_all).astype(int)
+    df["season_fall"] = (fall | second_half | season_all).astype(int)
+    df["season_winter"] = (winter | second_half | season_all).astype(int)
 
-    print("총 상품 수:", total_count)
-    print("총 페이지 수:", total_page)
-
-    all_rows = []
-
-    for page in range(1, total_page + 1):
-        print(f"{page}/{total_page} 페이지 수집 중...")
-
-        try:
-            data = get_list_page(page)
-        except Exception as e:
-            print(f"{page}페이지 요청 실패:", e)
-            continue
-
-        products = data["body"]["results"]["products"]
-
-        for p in products:
-            product_code = str(p.get("id")).strip()
-            product_sale_type = p.get("productSaleType")
-
-            all_rows.append({
-                "product_code": product_code,
-                "product_sale_type": product_sale_type,
-            })
-
-        time.sleep(0.2)
-
-    sale_type_df = pd.DataFrame(all_rows)
-    sale_type_df["product_code"] = sale_type_df["product_code"].astype(str).str.strip()
-    sale_type_df = sale_type_df.drop_duplicates(subset=["product_code"])
-
-    print("\nsale_type 수집 완료")
-    print(sale_type_df.head())
-    print("sale_type row 수:", len(sale_type_df))
-    print("sale_type 빈값 개수:", sale_type_df["product_sale_type"].isna().sum())
-    print("sale_type 값 분포:")
-    print(sale_type_df["product_sale_type"].value_counts(dropna=False).sort_index())
-
-    return sale_type_df
+    return df
 
 
 def main():
-    print("기존 CSV 불러오는 중...")
-    origin_df = pd.read_csv(CSV_PATH)
+    dfs = []
 
-    origin_df["product_code"] = origin_df["product_code"].astype(str).str.strip()
+    required_columns = [
+        "product_code",
+        "product_name",
+        "brand_name",
+        "brand_id",
+        "brand_group_id",
+        "product_sale_type",
+        "season",
+        "season_name_raw",
+        "season_spring",
+        "season_summer",
+        "season_fall",
+        "season_winter",
+        "season_all",
+        "original_price",
+        "sale_price",
+        "discount_rate",
+        "sale_count",
+        "cart_count",
+        "review_count",
+        "review_score",
+        "purchase_count",
+        "viewing_count",
+        "wish_count",
+        "size_total_stock",
+        "size_stock_detail",
+        "color_total_stock",
+        "color_stock_detail",
+        "lf_category_l1",
+        "lf_category_l2",
+        "lf_category_l3",
+        "display_category_id",
+        "soldout",
+    ]
 
-    print("기존 CSV row 수:", len(origin_df))
-    print(origin_df[["product_code"]].head())
+    for file_name in FILE_LIST:
+        file_path = os.path.join(DATA_DIR, file_name)
 
-    sale_type_df = collect_product_sale_type()
+        print(f"\n불러오는 중: {file_name}")
+        df = pd.read_csv(file_path, dtype={"product_code": "string", "brand_id": "string"})
 
-    # 기존 컬럼 제거
-    origin_df = origin_df.drop(columns=["product_sale_type"], errors="ignore")
+        df["product_code"] = df["product_code"].astype(str).str.strip()
 
-    # merge
-    merged_df = origin_df.merge(
-        sale_type_df,
-        on="product_code",
-        how="left"
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = pd.NA
+
+        df = df[required_columns]
+
+        print(f"row 수: {len(df)}")
+        dfs.append(df)
+
+    master_df = pd.concat(dfs, ignore_index=True)
+
+    print("\nconcat 완료")
+    print("concat row 수:", len(master_df))
+
+    before_dedup = len(master_df)
+    master_df = master_df.drop_duplicates(subset=["product_code"], keep="first")
+    after_dedup = len(master_df)
+
+    print("중복 제거 전:", before_dedup)
+    print("중복 제거 후:", after_dedup)
+    print("중복 제거 수:", before_dedup - after_dedup)
+
+    master_df = recompute_season_flags(master_df)
+
+    print("\nseason_name_raw 분포 상위 30개")
+    print(master_df["season_name_raw"].fillna("(null)").value_counts(dropna=False).head(30))
+
+    print("\n시즌 플래그 합계")
+    print(
+        master_df[
+            [
+                "season_spring",
+                "season_summer",
+                "season_fall",
+                "season_winter",
+                "season_all",
+            ]
+        ].sum()
     )
 
-    print("\nmerge 완료")
-    print(merged_df[["product_code", "product_sale_type"]].head())
-    print("최종 row 수:", len(merged_df))
-    print("product_sale_type 빈값 개수:", merged_df["product_sale_type"].isna().sum())
-    print("product_sale_type 값 분포:")
-    print(merged_df["product_sale_type"].value_counts(dropna=False).sort_index())
+    print("\n카테고리 샘플")
+    print(
+        master_df[
+            ["product_code", "product_name", "brand_name", "lf_category_l1", "lf_category_l2", "lf_category_l3"]
+        ].head(10)
+    )
 
-    merged_df.to_csv(SAVE_PATH, index=False, encoding="utf-8-sig")
-    print(f"저장 완료: {SAVE_PATH}")
+    master_df.to_csv(SAVE_PATH, index=False, encoding="utf-8-sig")
+    print(f"\n저장 완료: {SAVE_PATH}")
 
 
 if __name__ == "__main__":

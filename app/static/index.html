@@ -5,6 +5,10 @@
   <title>LF Styling Recommendation</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; color: #222; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .logo { height: 42px; object-fit: contain; }
+    .header h1 { margin: 0; }
+    .header p { margin: 4px 0 0 0; color: #666; }
     h1 { margin-bottom: 10px; }
     .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
     input, select, button { padding: 10px; font-size: 16px; margin-right: 6px; margin-top: 6px; }
@@ -29,7 +33,17 @@
 </head>
 
 <body>
-  <h1>LF Styling Recommendation</h1>
+  <div class="header">
+    <img
+      src="https://img.lfmall.co.kr/file/WAS/apps/2024/pfront/logo/lf_logo_pc.svg"
+      alt="LFmall Logo"
+      class="logo"
+    />
+    <div>
+      <h1>Styling Recommendation</h1>
+      <p>LF Mall 남성 패션 상품 기반 스타일링 추천 시스템</p>
+    </div>
+  </div>
 
   <div class="box">
     <h2>1. 상품 검색</h2>

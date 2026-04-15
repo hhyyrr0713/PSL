@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 
 # =========================
@@ -20,13 +21,6 @@ AGE_COLS = [
     "age_20s",
     "age_30s",
     "age_40s_plus",
-]
-
-SEASON_COLS = [
-    "season_spring",
-    "season_summer",
-    "season_fall",
-    "season_winter",
 ]
 
 NEUTRAL_COLOR_GROUPS = {
@@ -64,17 +58,6 @@ BAD_COLOR_PAIRS = {
 }
 
 INVALID_SUBTYPE_VALUES = {"", "unknown", "not_applicable", "not applicable", "na", "none", "null"}
-
-WINTER_HEAVY_KEYWORDS = {
-    "패딩", "다운", "down", "puffer", "플리스", "fleece",
-    "기모", "코지 웜", "cosy warm", "cosy_warm", "cosywarm",
-    "헤비다운", "heavy down"
-}
-
-SUMMER_LIGHT_KEYWORDS = {
-    "반팔", "short sleeve", "short-sleeve", "sleeveless",
-    "민소매", "리넨", "linen", "쿨", "cool", "나일론", "nylon"
-}
 
 
 # =========================
@@ -122,116 +105,107 @@ def pair_key(a: str, b: str) -> tuple:
     return tuple(sorted([str(a), str(b)]))
 
 
-def has_keyword(text: str, keywords: set) -> bool:
-    text = safe_str(text).lower()
-    return any(keyword.lower() in text for keyword in keywords)
-
-
 # =========================
-# 시즌 유틸
+# 시즌 프로필 유틸
 # =========================
-def get_season_vector(item: pd.Series) -> np.ndarray:
-    return np.array([safe_float(item.get(col, 0.0)) for col in SEASON_COLS], dtype=float)
+def get_season_profile(item: pd.Series) -> Dict[str, float]:
+    return {
+        "warm": safe_float(item.get("season_warm_weight", 0.0)),
+        "mid": safe_float(item.get("season_mid_weight", 0.0)),
+        "cold": safe_float(item.get("season_cold_weight", 0.0)),
+        "temp": safe_float(item.get("season_temperature_score", np.nan)),
+    }
 
 
-def season_info_missing(item: pd.Series) -> bool:
-    return get_season_vector(item).sum() <= 0
+def season_profile_missing(item: pd.Series) -> bool:
+    p = get_season_profile(item)
+    return (p["warm"] + p["mid"] + p["cold"]) <= 0
 
 
-def season_overlap_count(item_a: pd.Series, item_b: pd.Series) -> int:
-    vec_a = get_season_vector(item_a)
-    vec_b = get_season_vector(item_b)
-    return int(np.sum((vec_a > 0) & (vec_b > 0)))
+def calculate_season_distance(item_a: pd.Series, item_b: pd.Series) -> float:
+    """
+    0에 가까울수록 계절감이 가깝고, 1에 가까울수록 멀다.
+    """
+    if season_profile_missing(item_a) or season_profile_missing(item_b):
+        return 0.5
+
+    temp_a = get_season_profile(item_a)["temp"]
+    temp_b = get_season_profile(item_b)["temp"]
+
+    if pd.isna(temp_a) or pd.isna(temp_b):
+        return 0.5
+
+    return abs(temp_a - temp_b)
 
 
-def season_overlap_score(item_a: pd.Series, item_b: pd.Series) -> float:
-    if season_info_missing(item_a) or season_info_missing(item_b):
+def calculate_season_score_v2(item_a: pd.Series, item_b: pd.Series) -> float:
+    if season_profile_missing(item_a) or season_profile_missing(item_b):
         return 50.0
 
-    overlap = season_overlap_count(item_a, item_b)
+    dist = calculate_season_distance(item_a, item_b)
 
-    if overlap >= 2:
+    if dist <= 0.10:
         return 100.0
-    elif overlap == 1:
+    elif dist <= 0.20:
+        return 90.0
+    elif dist <= 0.35:
         return 75.0
+    elif dist <= 0.50:
+        return 55.0
+    elif dist <= 0.70:
+        return 30.0
     else:
-        return 20.0
+        return 10.0
 
 
-def build_season_reason(item_a: pd.Series, item_b: pd.Series, label: str = "top-outer") -> str:
-    if season_info_missing(item_a) or season_info_missing(item_b):
+def is_critical_season_mismatch(item_a: pd.Series, item_b: pd.Series) -> bool:
+    """
+    여름 축(warm)과 겨울 축(cold)이 강하게 충돌하는 경우
+    """
+    if season_profile_missing(item_a) or season_profile_missing(item_b):
+        return False
+
+    pa = get_season_profile(item_a)
+    pb = get_season_profile(item_b)
+
+    cond1 = pa["warm"] >= 0.7 and pb["cold"] >= 0.7
+    cond2 = pb["warm"] >= 0.7 and pa["cold"] >= 0.7
+
+    return cond1 or cond2
+
+
+def build_season_reason_v2(item_a: pd.Series, item_b: pd.Series, label: str = "top-outer") -> str:
+    if season_profile_missing(item_a) or season_profile_missing(item_b):
         return f"{label} 시즌 정보 부족"
 
-    overlap = season_overlap_count(item_a, item_b)
+    if is_critical_season_mismatch(item_a, item_b):
+        return f"{label} 시즌 극단 충돌"
 
-    if overlap >= 2:
-        return f"{label} 시즌 궁합이 좋음"
-    elif overlap == 1:
-        return f"{label} 시즌 일부 겹침"
+    dist = calculate_season_distance(item_a, item_b)
+
+    if dist <= 0.10:
+        return f"{label} 시즌감이 매우 유사함"
+    elif dist <= 0.20:
+        return f"{label} 시즌감이 유사함"
+    elif dist <= 0.35:
+        return f"{label} 시즌감이 어느 정도 맞음"
+    elif dist <= 0.50:
+        return f"{label} 시즌감 차이가 약간 있음"
+    elif dist <= 0.70:
+        return f"{label} 시즌감 차이가 큼"
     else:
-        return f"{label} 시즌 불일치"
+        return f"{label} 시즌감 차이가 매우 큼"
 
 
-def is_winter_heavy_item(item: pd.Series) -> bool:
-    name = safe_str(item.get("product_name", "")).lower()
-    category = safe_str(item.get("category_name", "")).lower()
-    season_raw = safe_str(item.get("season_name_raw", "")).lower()
-
-    text = f"{name} {category} {season_raw}"
-
-    if has_keyword(text, WINTER_HEAVY_KEYWORDS):
-        return True
-
-    season_winter = safe_float(item.get("season_winter", 0))
-    season_summer = safe_float(item.get("season_summer", 0))
-
-    if season_winter > 0 and season_summer <= 0:
-        return True
-
-    return False
+def should_block_by_season_conflict(item_a: pd.Series, item_b: pd.Series) -> bool:
+    return is_critical_season_mismatch(item_a, item_b)
 
 
-def is_explicit_summer_item(item: pd.Series) -> bool:
-    name = safe_str(item.get("product_name", "")).lower()
-    category = safe_str(item.get("category_name", "")).lower()
-    season_raw = safe_str(item.get("season_name_raw", "")).lower()
-
-    text = f"{name} {category} {season_raw}"
-
-    if has_keyword(text, SUMMER_LIGHT_KEYWORDS):
-        return True
-
-    season_summer = safe_float(item.get("season_summer", 0))
-    season_winter = safe_float(item.get("season_winter", 0))
-
-    if season_summer > 0 and season_winter <= 0:
-        return True
-
-    return False
-
-
-def should_block_by_season_conflict(
-    anchor_item: pd.Series,
-    candidate_item: pd.Series,
-) -> bool:
-    anchor_is_summer = is_explicit_summer_item(anchor_item)
-    candidate_is_winter_heavy = is_winter_heavy_item(candidate_item)
-
-    if anchor_is_summer and candidate_is_winter_heavy:
-        return True
-
-    return False
-
-
-def apply_strict_season_filter(
-    anchor_item: pd.Series,
-    candidates_df: pd.DataFrame,
-) -> pd.DataFrame:
+def apply_strict_season_filter(anchor_item: pd.Series, candidates_df: pd.DataFrame) -> pd.DataFrame:
     if candidates_df.empty:
         return candidates_df.copy()
 
     filtered_rows = []
-
     for _, row in candidates_df.iterrows():
         if should_block_by_season_conflict(anchor_item, row):
             continue
@@ -241,6 +215,44 @@ def apply_strict_season_filter(
         return pd.DataFrame(columns=candidates_df.columns)
 
     return pd.DataFrame(filtered_rows).reset_index(drop=True)
+
+
+def calculate_triplet_season_coherence_penalty(
+    top_item: pd.Series,
+    bottom_item: pd.Series,
+    outer_item: pd.Series,
+) -> float:
+    """
+    세 아이템의 계절 온도 축이 너무 벌어져 있으면 추가 감점
+    """
+    if (
+        season_profile_missing(top_item)
+        or season_profile_missing(bottom_item)
+        or season_profile_missing(outer_item)
+    ):
+        return 0.0
+
+    temps = [
+        get_season_profile(top_item)["temp"],
+        get_season_profile(bottom_item)["temp"],
+        get_season_profile(outer_item)["temp"],
+    ]
+
+    if any(pd.isna(t) for t in temps):
+        return 0.0
+
+    spread = max(temps) - min(temps)
+
+    if spread <= 0.15:
+        return 0.0
+    elif spread <= 0.25:
+        return 4.0
+    elif spread <= 0.40:
+        return 8.0
+    elif spread <= 0.55:
+        return 15.0
+    else:
+        return 25.0
 
 
 # =========================
@@ -267,22 +279,29 @@ def load_master_table(csv_path: str) -> pd.DataFrame:
         "bottom_subtype": "unknown",
         "sleeve_length_type": "unknown",
         "pants_length_type": "unknown",
-        "season_name_raw": "",
-        "season_spring": 0,
-        "season_summer": 0,
-        "season_fall": 0,
-        "season_winter": 0,
-        "season_all": 0,
+        "season_warm_weight": 0.0,
+        "season_mid_weight": 0.0,
+        "season_cold_weight": 0.0,
+        "season_temperature_score": np.nan,
+        "season_profile_label": "unknown",
     }
 
     for col, default_value in required_defaults.items():
         if col not in df.columns:
             df[col] = default_value
 
-    for col in MOOD_COLS + AGE_COLS + SEASON_COLS + ["season_all"]:
+    for col in MOOD_COLS + AGE_COLS:
         if col not in df.columns:
             df[col] = 0.0
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+
+    for col in [
+        "season_warm_weight",
+        "season_mid_weight",
+        "season_cold_weight",
+        "season_temperature_score",
+    ]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
     df["final_score"] = pd.to_numeric(df["final_score"], errors="coerce").fillna(0.0)
     df["has_stock"] = pd.to_numeric(df["has_stock"], errors="coerce").fillna(0).astype(int)
@@ -303,7 +322,7 @@ def load_master_table(csv_path: str) -> pd.DataFrame:
         "bottom_subtype",
         "sleeve_length_type",
         "pants_length_type",
-        "season_name_raw",
+        "season_profile_label",
     ]
 
     for col in text_cols:
@@ -340,10 +359,7 @@ def determine_target_roles(anchor_role: str) -> List[str]:
     return role_map.get(anchor_role, ["top", "bottom", "outer"])
 
 
-def resolve_target_roles(
-    anchor_role: str,
-    recommendation_mode: str = "all",
-) -> List[str]:
+def resolve_target_roles(anchor_role: str, recommendation_mode: str = "all") -> List[str]:
     natural_roles = determine_target_roles(anchor_role)
 
     mode_map = {
@@ -885,16 +901,12 @@ def calculate_role_compatibility_score(anchor_item: pd.Series, candidate_item: p
         if is_shorts_anchor:
             if candidate_subtype in {"jacket", "coat"}:
                 score -= 20.0
-
             if candidate_subtype in {"shirt", "vest", "cardigan", "knit"}:
                 score -= 16.0
-
             if candidate_subtype in {"windbreaker", "tshirt", "short_sleeve_tshirt", "long_sleeve_tshirt"}:
                 score += 10.0
-
             if candidate_subtype in {"sweatshirt", "hoodie"}:
                 score += 5.0
-
             if candidate_subtype in {"jumper"}:
                 score += 2.0
 
@@ -945,10 +957,7 @@ def calculate_pair_score(
 # =========================
 # 후보 정렬
 # =========================
-def rank_candidates(
-    anchor_item: pd.Series,
-    candidates_df: pd.DataFrame,
-) -> pd.DataFrame:
+def rank_candidates(anchor_item: pd.Series, candidates_df: pd.DataFrame) -> pd.DataFrame:
     if candidates_df.empty:
         return candidates_df.copy()
 
@@ -961,7 +970,6 @@ def rank_candidates(
             candidate_item=row,
             max_final_score=max_final_score,
         )
-
         row_dict = row.to_dict()
         row_dict.update(score_dict)
         scored_rows.append(row_dict)
@@ -983,19 +991,14 @@ def build_reason_text(anchor_item: pd.Series, candidate_item: pd.Series, score_r
 
     if safe_float(score_row.get("mood_score", 0)) >= 80:
         reasons.append("무드 조화가 좋음")
-
     if safe_float(score_row.get("color_score", 0)) >= 80:
         reasons.append("색 조합이 안정적임")
-
     if safe_float(score_row.get("formality_score", 0)) >= 80:
         reasons.append("포멀도 차이가 크지 않음")
-
     if safe_float(score_row.get("role_compatibility_score", 0)) >= 78:
         reasons.append("아이템 성격상 궁합이 좋음")
-
     if safe_float(score_row.get("brand_score", 0)) >= 80:
         reasons.append("동일 브랜드 조합으로 통일감이 있음")
-
     if safe_float(score_row.get("popularity_score", 0)) >= 75:
         reasons.append("기존 추천 점수도 높은 편")
 
@@ -1038,7 +1041,6 @@ def build_styling_recommendations(
         same_brand_only=same_brand_only,
     )
 
-    # 명확한 여름-겨울 충돌은 보정이 아니라 제거
     candidates = apply_strict_season_filter(anchor_item, candidates)
 
     anchor_bottom_subtype = get_effective_bottom_subtype(anchor_item)
@@ -1109,11 +1111,11 @@ def build_styling_recommendations(
         "age_score",
         "popularity_score",
         "role_compatibility_score",
-        "season_name_raw",
-        "season_spring",
-        "season_summer",
-        "season_fall",
-        "season_winter",
+        "season_profile_label",
+        "season_warm_weight",
+        "season_mid_weight",
+        "season_cold_weight",
+        "season_temperature_score",
         "reason_text",
     ]
 
@@ -1172,10 +1174,7 @@ def build_styling_recommendations_by_role(
 # =========================
 # 세트 추천 유틸
 # =========================
-def calculate_top_outer_pair_score(
-    top_row: pd.Series,
-    outer_row: pd.Series,
-) -> Dict[str, float]:
+def calculate_top_outer_pair_score(top_row: pd.Series, outer_row: pd.Series) -> Dict[str, float]:
     max_final_score = max(
         safe_float(top_row.get("final_score", 0.0)),
         safe_float(outer_row.get("final_score", 0.0)),
@@ -1189,19 +1188,25 @@ def calculate_top_outer_pair_score(
     )
 
     top_outer_base_score = float(score_dict["styling_score"])
-    top_outer_season_score = season_overlap_score(top_row, outer_row)
+    top_outer_season_score = calculate_season_score_v2(top_row, outer_row)
 
-    adjusted_top_outer_score = round(
-        top_outer_base_score * 0.8 + top_outer_season_score * 0.2,
-        4,
-    )
+    if is_critical_season_mismatch(top_row, outer_row):
+        adjusted_top_outer_score = round(
+            top_outer_base_score * 0.55 + top_outer_season_score * 0.45,
+            4,
+        )
+    else:
+        adjusted_top_outer_score = round(
+            top_outer_base_score * 0.8 + top_outer_season_score * 0.2,
+            4,
+        )
 
     return {
         "top_outer_base_score": round(top_outer_base_score, 4),
         "top_outer_season_score": round(top_outer_season_score, 4),
         "top_outer_score": adjusted_top_outer_score,
-        "top_outer_season_overlap_count": season_overlap_count(top_row, outer_row),
-        "top_outer_season_reason": build_season_reason(top_row, outer_row, label="top-outer"),
+        "top_outer_season_distance": round(calculate_season_distance(top_row, outer_row), 4),
+        "top_outer_season_reason": build_season_reason_v2(top_row, outer_row, label="top-outer"),
     }
 
 
@@ -1239,8 +1244,9 @@ def build_two_piece_sets_for_bottom_anchor(
             "top_outer_base_score": 0.0,
             "top_outer_season_score": 0.0,
             "top_outer_score": 0.0,
-            "top_outer_season_overlap_count": 0,
+            "top_outer_season_distance": 0.0,
             "top_outer_season_reason": "",
+            "triplet_season_penalty": 0.0,
             "set_score": bt_score,
             "top_reason_text": top_row.get("reason_text", ""),
             "outer_reason_text": "",
@@ -1281,13 +1287,16 @@ def build_three_piece_sets_for_bottom_anchor(
             bo_score = round(float(outer_row.get("styling_score", 0.0)), 4)
 
             to_score_dict = calculate_top_outer_pair_score(top_row, outer_row)
-            to_base_score = to_score_dict["top_outer_base_score"]
-            to_season_score = to_score_dict["top_outer_season_score"]
-            to_score = to_score_dict["top_outer_score"]
-            to_overlap_count = to_score_dict["top_outer_season_overlap_count"]
-            to_season_reason = to_score_dict["top_outer_season_reason"]
+            triplet_penalty = calculate_triplet_season_coherence_penalty(
+                top_item=top_row,
+                bottom_item=anchor_item,
+                outer_item=outer_row,
+            )
 
-            set_score = round((bt_score + bo_score + to_score) / 3, 4)
+            set_score = round(
+                ((bt_score + bo_score + to_score_dict["top_outer_score"]) / 3) - triplet_penalty,
+                4,
+            )
 
             rows.append({
                 "set_type": "3piece",
@@ -1302,18 +1311,19 @@ def build_three_piece_sets_for_bottom_anchor(
                 "outer_product_name": outer_row.get("product_name", ""),
                 "bottom_top_score": bt_score,
                 "bottom_outer_score": bo_score,
-                "top_outer_base_score": to_base_score,
-                "top_outer_season_score": to_season_score,
-                "top_outer_score": to_score,
-                "top_outer_season_overlap_count": to_overlap_count,
-                "top_outer_season_reason": to_season_reason,
+                "top_outer_base_score": to_score_dict["top_outer_base_score"],
+                "top_outer_season_score": to_score_dict["top_outer_season_score"],
+                "top_outer_score": to_score_dict["top_outer_score"],
+                "top_outer_season_distance": to_score_dict["top_outer_season_distance"],
+                "top_outer_season_reason": to_score_dict["top_outer_season_reason"],
+                "triplet_season_penalty": triplet_penalty,
                 "set_score": set_score,
                 "top_reason_text": top_row.get("reason_text", ""),
                 "outer_reason_text": outer_row.get("reason_text", ""),
                 "set_reason": (
                     f"{top_row.get('product_name', '')} + "
                     f"{outer_row.get('product_name', '')} 3피스 조합 / "
-                    f"{to_season_reason}"
+                    f"{to_score_dict['top_outer_season_reason']}"
                 ),
             })
 
@@ -1363,8 +1373,9 @@ def build_two_piece_sets_for_top_anchor(
             "top_outer_base_score": 0.0,
             "top_outer_season_score": 0.0,
             "top_outer_score": 0.0,
-            "top_outer_season_overlap_count": 0,
+            "top_outer_season_distance": 0.0,
             "top_outer_season_reason": "",
+            "triplet_season_penalty": 0.0,
             "set_score": tb_score,
             "top_reason_text": "",
             "outer_reason_text": "",
@@ -1404,11 +1415,6 @@ def build_three_piece_sets_for_top_anchor(
             bt_score = round(float(bottom_row.get("styling_score", 0.0)), 4)
 
             to_score_dict = calculate_top_outer_pair_score(anchor_item, outer_row)
-            to_base_score = to_score_dict["top_outer_base_score"]
-            to_season_score = to_score_dict["top_outer_season_score"]
-            to_score = to_score_dict["top_outer_score"]
-            to_overlap_count = to_score_dict["top_outer_season_overlap_count"]
-            to_season_reason = to_score_dict["top_outer_season_reason"]
 
             max_final_score = max(
                 safe_float(bottom_row.get("final_score", 0.0)),
@@ -1418,7 +1424,16 @@ def build_three_piece_sets_for_top_anchor(
             bo_score_dict = calculate_pair_score(bottom_row, outer_row, max_final_score)
             bo_score = round(float(bo_score_dict["styling_score"]), 4)
 
-            set_score = round((bt_score + bo_score + to_score) / 3, 4)
+            triplet_penalty = calculate_triplet_season_coherence_penalty(
+                top_item=anchor_item,
+                bottom_item=bottom_row,
+                outer_item=outer_row,
+            )
+
+            set_score = round(
+                ((bt_score + bo_score + to_score_dict["top_outer_score"]) / 3) - triplet_penalty,
+                4,
+            )
 
             rows.append({
                 "set_type": "3piece",
@@ -1433,18 +1448,19 @@ def build_three_piece_sets_for_top_anchor(
                 "outer_product_name": outer_row.get("product_name", ""),
                 "bottom_top_score": bt_score,
                 "bottom_outer_score": bo_score,
-                "top_outer_base_score": to_base_score,
-                "top_outer_season_score": to_season_score,
-                "top_outer_score": to_score,
-                "top_outer_season_overlap_count": to_overlap_count,
-                "top_outer_season_reason": to_season_reason,
+                "top_outer_base_score": to_score_dict["top_outer_base_score"],
+                "top_outer_season_score": to_score_dict["top_outer_season_score"],
+                "top_outer_score": to_score_dict["top_outer_score"],
+                "top_outer_season_distance": to_score_dict["top_outer_season_distance"],
+                "top_outer_season_reason": to_score_dict["top_outer_season_reason"],
+                "triplet_season_penalty": triplet_penalty,
                 "set_score": set_score,
                 "top_reason_text": "",
                 "outer_reason_text": outer_row.get("reason_text", ""),
                 "set_reason": (
                     f"{bottom_row.get('product_name', '')} + "
                     f"{outer_row.get('product_name', '')} 3피스 조합 / "
-                    f"{to_season_reason}"
+                    f"{to_score_dict['top_outer_season_reason']}"
                 ),
             })
 
@@ -1498,8 +1514,9 @@ def build_two_piece_sets_for_outer_anchor(
             "top_outer_base_score": ot_score_dict["top_outer_base_score"],
             "top_outer_season_score": ot_score_dict["top_outer_season_score"],
             "top_outer_score": ot_score,
-            "top_outer_season_overlap_count": ot_score_dict["top_outer_season_overlap_count"],
+            "top_outer_season_distance": ot_score_dict["top_outer_season_distance"],
             "top_outer_season_reason": ot_score_dict["top_outer_season_reason"],
+            "triplet_season_penalty": 0.0,
             "set_score": ot_score,
             "top_reason_text": top_row.get("reason_text", ""),
             "outer_reason_text": "",
@@ -1550,13 +1567,17 @@ def build_three_piece_sets_for_outer_anchor(
             bo_score = round(float(bo_score_dict["styling_score"]), 4)
 
             to_score_dict = calculate_top_outer_pair_score(top_row, anchor_item)
-            to_base_score = to_score_dict["top_outer_base_score"]
-            to_season_score = to_score_dict["top_outer_season_score"]
-            to_score = to_score_dict["top_outer_score"]
-            to_overlap_count = to_score_dict["top_outer_season_overlap_count"]
-            to_season_reason = to_score_dict["top_outer_season_reason"]
 
-            set_score = round((bt_score + bo_score + to_score) / 3, 4)
+            triplet_penalty = calculate_triplet_season_coherence_penalty(
+                top_item=top_row,
+                bottom_item=bottom_row,
+                outer_item=anchor_item,
+            )
+
+            set_score = round(
+                ((bt_score + bo_score + to_score_dict["top_outer_score"]) / 3) - triplet_penalty,
+                4,
+            )
 
             rows.append({
                 "set_type": "3piece",
@@ -1571,18 +1592,19 @@ def build_three_piece_sets_for_outer_anchor(
                 "outer_product_name": anchor_item.get("product_name", ""),
                 "bottom_top_score": bt_score,
                 "bottom_outer_score": bo_score,
-                "top_outer_base_score": to_base_score,
-                "top_outer_season_score": to_season_score,
-                "top_outer_score": to_score,
-                "top_outer_season_overlap_count": to_overlap_count,
-                "top_outer_season_reason": to_season_reason,
+                "top_outer_base_score": to_score_dict["top_outer_base_score"],
+                "top_outer_season_score": to_score_dict["top_outer_season_score"],
+                "top_outer_score": to_score_dict["top_outer_score"],
+                "top_outer_season_distance": to_score_dict["top_outer_season_distance"],
+                "top_outer_season_reason": to_score_dict["top_outer_season_reason"],
+                "triplet_season_penalty": triplet_penalty,
                 "set_score": set_score,
                 "top_reason_text": top_row.get("reason_text", ""),
                 "outer_reason_text": "",
                 "set_reason": (
                     f"{top_row.get('product_name', '')} + "
                     f"{bottom_row.get('product_name', '')} 3피스 조합 / "
-                    f"{to_season_reason}"
+                    f"{to_score_dict['top_outer_season_reason']}"
                 ),
             })
 
@@ -1670,6 +1692,73 @@ def build_styling_sets(
 
 
 # =========================
+# 추천 결과 저장 함수
+# =========================
+def save_recommendation_outputs(
+    anchor_product_code,
+    anchor_product_name,
+    anchor_role,
+    top_candidates=None,
+    bottom_candidates=None,
+    outer_candidates=None,
+    set_2piece=None,
+    set_3piece=None,
+    output_dir="output/recommendations"
+):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_anchor_code = str(anchor_product_code).replace("/", "_").replace("\\", "_")
+
+    role_candidate_map = {
+        "top": top_candidates,
+        "bottom": bottom_candidates,
+        "outer": outer_candidates,
+    }
+
+    pair_frames = []
+
+    for role, df_role in role_candidate_map.items():
+        if df_role is None or df_role.empty:
+            continue
+
+        save_df = df_role.copy()
+        save_df.insert(0, "anchor_product_code", anchor_product_code)
+        save_df.insert(1, "anchor_product_name", anchor_product_name)
+        save_df.insert(2, "anchor_role", anchor_role)
+        save_df.insert(3, "recommended_role", role)
+        save_df.insert(4, "rank", range(1, len(save_df) + 1))
+
+        pair_frames.append(save_df)
+
+        save_path = output_dir / f"{safe_anchor_code}_{role}_candidates.csv"
+        save_df.to_csv(save_path, index=False, encoding="utf-8-sig")
+        print(f"[저장 완료] {save_path}")
+
+    if pair_frames:
+        pair_all = pd.concat(pair_frames, ignore_index=True)
+        save_path = output_dir / f"{safe_anchor_code}_pair_recommendations.csv"
+        pair_all.to_csv(save_path, index=False, encoding="utf-8-sig")
+        print(f"[저장 완료] {save_path}")
+
+    if set_2piece is not None and not set_2piece.empty:
+        save_df = set_2piece.copy()
+        save_df.insert(0, "rank", range(1, len(save_df) + 1))
+
+        save_path = output_dir / f"{safe_anchor_code}_set_2piece_recommendations.csv"
+        save_df.to_csv(save_path, index=False, encoding="utf-8-sig")
+        print(f"[저장 완료] {save_path}")
+
+    if set_3piece is not None and not set_3piece.empty:
+        save_df = set_3piece.copy()
+        save_df.insert(0, "rank", range(1, len(save_df) + 1))
+
+        save_path = output_dir / f"{safe_anchor_code}_set_3piece_recommendations.csv"
+        save_df.to_csv(save_path, index=False, encoding="utf-8-sig")
+        print(f"[저장 완료] {save_path}")
+
+
+# =========================
 # 실행 예시
 # =========================
 if __name__ == "__main__":
@@ -1679,9 +1768,9 @@ if __name__ == "__main__":
 
     df = load_master_table(CSV_PATH)
 
-    test_product_code = "JNTS5B201WT"   # top
+    test_product_code = "IEPA5E408BK"   # outer
+    # test_product_code = "JNTS5B201WT"  # top
     # test_product_code = "IEPA5E408BK"  # bottom
-    # test_product_code = "TNJU6E107BK"  # outer
 
     try:
         result = build_styling_sets(
@@ -1698,7 +1787,7 @@ if __name__ == "__main__":
         else:
             print(
                 result["top_candidates"][
-                    ["product_code", "product_name", "brand_name", "styling_score", "reason_text"]
+                    ["product_code", "product_name", "brand_name", "styling_score", "season_profile_label", "reason_text"]
                 ].to_string(index=False)
             )
 
@@ -1708,7 +1797,7 @@ if __name__ == "__main__":
         else:
             print(
                 result["bottom_candidates"][
-                    ["product_code", "product_name", "brand_name", "styling_score", "reason_text"]
+                    ["product_code", "product_name", "brand_name", "styling_score", "season_profile_label", "reason_text"]
                 ].to_string(index=False)
             )
 
@@ -1718,7 +1807,7 @@ if __name__ == "__main__":
         else:
             print(
                 result["outer_candidates"][
-                    ["product_code", "product_name", "brand_name", "styling_score", "reason_text"]
+                    ["product_code", "product_name", "brand_name", "styling_score", "season_profile_label", "reason_text"]
                 ].to_string(index=False)
             )
 
@@ -1737,6 +1826,8 @@ if __name__ == "__main__":
                         "outer_product_name",
                         "bottom_top_score",
                         "top_outer_score",
+                        "top_outer_season_distance",
+                        "top_outer_season_reason",
                         "set_score",
                         "set_reason",
                     ]
@@ -1761,13 +1852,28 @@ if __name__ == "__main__":
                         "top_outer_base_score",
                         "top_outer_season_score",
                         "top_outer_score",
-                        "top_outer_season_overlap_count",
+                        "top_outer_season_distance",
                         "top_outer_season_reason",
+                        "triplet_season_penalty",
                         "set_score",
                         "set_reason",
                     ]
                 ].to_string(index=False)
             )
+
+        anchor_item = get_anchor_item(df, test_product_code)
+
+        save_recommendation_outputs(
+            anchor_product_code=anchor_item["product_code"],
+            anchor_product_name=anchor_item["product_name"],
+            anchor_role=anchor_item["item_role"],
+            top_candidates=result["top_candidates"],
+            bottom_candidates=result["bottom_candidates"],
+            outer_candidates=result["outer_candidates"],
+            set_2piece=result["two_piece_sets"],
+            set_3piece=result["three_piece_sets"],
+            output_dir=os.path.join(BASE_DIR, "output", "recommendations"),
+        )
 
     except Exception as e:
         print(f"[ERROR] {e}")

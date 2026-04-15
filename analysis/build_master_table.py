@@ -39,7 +39,7 @@ BASE_COLUMNS = [
     # 기존 season
     "season",
 
-    # ===== 추가: seasonName 계열 =====
+    # ===== seasonName 계열 =====
     "season_name_raw",
     "season_spring",
     "season_summer",
@@ -65,7 +65,7 @@ BASE_COLUMNS = [
     "lf_category_l2",
     "lf_category_l3",
 
-    # 질스튜어트용 컬럼도 유지하고 싶으면 포함
+    # 질스튜어트용 컬럼도 유지
     "display_category_id",
     "soldout",
 ]
@@ -552,6 +552,100 @@ def recompute_season_flags(df: pd.DataFrame) -> pd.DataFrame:
     df["season_fall"] = (fall | second_half | season_all).astype(int)
     df["season_winter"] = (winter | second_half | season_all).astype(int)
 
+    return df
+
+def normalize_triplet(warm: float, mid: float, cold: float):
+    total = warm + mid + cold
+    if total <= 0:
+        return 0.0, 0.0, 0.0
+    return warm / total, mid / total, cold / total
+
+def build_season_profile_from_flags(row: pd.Series) -> pd.Series:
+    spring = int(row.get("season_spring", 0))
+    summer = int(row.get("season_summer", 0))
+    fall = int(row.get("season_fall", 0))
+    winter = int(row.get("season_winter", 0))
+    season_all = int(row.get("season_all", 0))
+
+    flags = (spring, summer, fall, winter)
+
+    if season_all == 1 or flags == (1, 1, 1, 1):
+        warm, mid, cold = 0.33, 0.34, 0.33
+        label = "all_season"
+
+    elif sum(flags) == 0:
+        warm, mid, cold = 0.0, 0.0, 0.0
+        label = "unknown"
+
+    elif flags == (1, 0, 0, 0):   # spring
+        warm, mid, cold = 0.0, 1.0, 0.0
+        label = "spring"
+    elif flags == (0, 1, 0, 0):   # summer
+        warm, mid, cold = 1.0, 0.0, 0.0
+        label = "summer"
+    elif flags == (0, 0, 1, 0):   # fall
+        warm, mid, cold = 0.0, 1.0, 0.0
+        label = "fall"
+    elif flags == (0, 0, 0, 1):   # winter
+        warm, mid, cold = 0.0, 0.0, 1.0
+        label = "winter"
+
+    elif flags == (1, 1, 0, 0):   # spring + summer
+        warm, mid, cold = 0.75, 0.25, 0.0
+        label = "spring_summer"
+    elif flags == (0, 1, 1, 0):   # summer + fall
+        warm, mid, cold = 0.75, 0.25, 0.0
+        label = "summer_fall"
+    elif flags == (0, 0, 1, 1):   # fall + winter
+        warm, mid, cold = 0.0, 0.25, 0.75
+        label = "fall_winter"
+    elif flags == (1, 0, 0, 1):   # winter + spring
+        warm, mid, cold = 0.0, 0.25, 0.75
+        label = "winter_spring"
+    elif flags == (1, 0, 1, 0):   # spring + fall
+        warm, mid, cold = 0.0, 1.0, 0.0
+        label = "spring_fall"
+    elif flags == (0, 1, 0, 1):   # summer + winter (드문 케이스)
+        warm, mid, cold = 0.5, 0.0, 0.5
+        label = "summer_winter"
+
+    elif flags == (1, 1, 1, 0):   # spring + summer + fall
+        warm, mid, cold = 0.34, 0.66, 0.0
+        label = "spring_summer_fall"
+    elif flags == (1, 0, 1, 1):   # spring + fall + winter
+        warm, mid, cold = 0.0, 0.66, 0.34
+        label = "spring_fall_winter"
+    elif flags == (1, 1, 0, 1):   # spring + summer + winter
+        warm, mid, cold = 0.40, 0.20, 0.40
+        label = "spring_summer_winter"
+    elif flags == (0, 1, 1, 1):   # summer + fall + winter
+        warm, mid, cold = 0.40, 0.20, 0.40
+        label = "summer_fall_winter"
+
+    else:
+        warm = float(summer)
+        mid = float(spring + fall)
+        cold = float(winter)
+        warm, mid, cold = normalize_triplet(warm, mid, cold)
+        label = "fallback"
+
+    if warm + mid + cold <= 0:
+        temp_score = np.nan
+    else:
+        temp_score = warm * 0.0 + mid * 0.5 + cold * 1.0
+
+    return pd.Series({
+        "season_warm_weight": round(warm, 4),
+        "season_mid_weight": round(mid, 4),
+        "season_cold_weight": round(cold, 4),
+        "season_temperature_score": round(temp_score, 4) if not pd.isna(temp_score) else np.nan,
+        "season_profile_label": label,
+    })
+
+def add_season_profile_columns(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    season_profile_df = df.apply(build_season_profile_from_flags, axis=1)
+    df = pd.concat([df, season_profile_df], axis=1)
     return df
 
 def basic_check(df: pd.DataFrame) -> None:
@@ -1054,7 +1148,50 @@ df = standardize_columns(df)
 df = preprocess_string_id_columns(df)
 df = preprocess_numeric_columns(df)
 df = recompute_season_flags(df)
+df = add_season_profile_columns(df)
 df = add_code_columns(df)
+
+# =========================
+# 9-1. season_temperature_score null 확인
+# =========================
+print("\n===== season_temperature_score null rows =====")
+season_null_df = df[df["season_temperature_score"].isna()].copy()
+
+print("null 개수:", len(season_null_df))
+
+if not season_null_df.empty:
+    print(
+        season_null_df[
+            [
+                "product_code",
+                "product_name",
+                "brand_name",
+                "season",
+                "season_name_raw",
+                "season_spring",
+                "season_summer",
+                "season_fall",
+                "season_winter",
+                "season_all",
+                "season_warm_weight",
+                "season_mid_weight",
+                "season_cold_weight",
+                "season_temperature_score",
+                "season_profile_label",
+                "source_file",
+            ]
+        ]
+        .head(50)
+        .to_string(index=False)
+    )
+else:
+    print("null 없음")
+
+season_null_output = DATA_DIR / "season_temperature_null_rows.csv"
+season_null_df.to_csv(season_null_output, index=False, encoding="utf-8-sig")
+
+print("\n[season_temperature_score null rows 저장 완료]")
+print(season_null_output)
 
 # =========================
 # 10. product_code 기준 중복 확인 + 저장
@@ -1096,6 +1233,32 @@ print(
         "season_winter",
         "season_all",
     ]].sum()
+)
+
+print("\n===== season_profile_label 분포 =====")
+print(df["season_profile_label"].value_counts(dropna=False).head(30))
+
+print("\n===== season profile sample 30 =====")
+print(
+    df[
+        [
+            "product_code",
+            "product_name",
+            "season_name_raw",
+            "season_spring",
+            "season_summer",
+            "season_fall",
+            "season_winter",
+            "season_all",
+            "season_warm_weight",
+            "season_mid_weight",
+            "season_cold_weight",
+            "season_temperature_score",
+            "season_profile_label",
+        ]
+    ]
+    .head(30)
+    .to_string(index=False)
 )
 
 # =========================
@@ -1432,6 +1595,8 @@ print(
             "mood_business_casual", "mood_casual", "mood_street", "mood_minimal", "mood_formal",
             "age_20s", "age_30s", "age_40s_plus",
             "luxury_level", "texture_class",
+            "season_warm_weight", "season_mid_weight", "season_cold_weight",
+            "season_temperature_score", "season_profile_label",
         ]
     ]
     .head(20)
@@ -1456,16 +1621,30 @@ print(df["material_type"].value_counts(dropna=False))
 print("\n===== item_role 분포 =====")
 print(df["item_role"].value_counts(dropna=False))
 
+print("\n===== role-aware 정리 직전 outer의 top_subtype 분포 =====")
+print(
+    df[df["item_role"] == "outer"]["top_subtype"]
+    .value_counts(dropna=False)
+    .head(30)
+)
+
+print("\n===== role-aware 정리 직전 outer sample =====")
+print(
+    df.loc[
+        df["item_role"] == "outer",
+        ["product_code", "product_name", "category_name", "item_role", "top_subtype"]
+    ]
+    .head(30)
+    .to_string(index=False)
+)
+
 # =========================
 # role-aware unknown 정리
 # =========================
-
-# 문자열 정리
 for col in ["item_role", "sleeve_length_type", "pants_length_type", "top_subtype", "bottom_subtype"]:
     if col in df.columns:
         df[col] = df[col].fillna("").astype(str).str.strip()
 
-# 표준값 통일
 for col in ["sleeve_length_type", "pants_length_type", "top_subtype", "bottom_subtype"]:
     if col in df.columns:
         df[col] = df[col].replace({
@@ -1474,26 +1653,17 @@ for col in ["sleeve_length_type", "pants_length_type", "top_subtype", "bottom_su
             "None": "unknown",
         })
 
-# 1) sleeve_length_type
-# top일 때만 의미 있음
 if "item_role" in df.columns and "sleeve_length_type" in df.columns:
     df.loc[df["item_role"] != "top", "sleeve_length_type"] = "not_applicable"
 
-# 2) pants_length_type
-# bottom일 때만 의미 있음
 if "item_role" in df.columns and "pants_length_type" in df.columns:
     df.loc[df["item_role"] != "bottom", "pants_length_type"] = "not_applicable"
 
-# 3) top_subtype
-# top일 때만 의미 있음
 if "item_role" in df.columns and "top_subtype" in df.columns:
-    df.loc[df["item_role"] != "top", "top_subtype"] = "not_applicable"
+    df.loc[~df["item_role"].isin(["top", "outer"]), "top_subtype"] = "not_applicable"
 
-# 4) bottom_subtype
-# bottom일 때만 의미 있음
 if "item_role" in df.columns and "bottom_subtype" in df.columns:
     df.loc[df["item_role"] != "bottom", "bottom_subtype"] = "not_applicable"
-
 
 # =========================
 # 확인 출력
@@ -1512,9 +1682,6 @@ print(df["top_subtype"].value_counts(dropna=False).head(30))
 print("\n===== bottom_subtype 분포 상위 30 =====")
 print(df["bottom_subtype"].value_counts(dropna=False).head(30))
 
-# =========================
-# role별 진짜 unknown 확인
-# =========================
 print("\n===== top만 필터한 sleeve_length_type 분포 =====")
 print(df[df["item_role"] == "top"]["sleeve_length_type"].value_counts(dropna=False))
 
@@ -1526,6 +1693,23 @@ print(df[df["item_role"] == "top"]["top_subtype"].value_counts(dropna=False).hea
 
 print("\n===== bottom만 필터한 bottom_subtype 분포 =====")
 print(df[df["item_role"] == "bottom"]["bottom_subtype"].value_counts(dropna=False).head(30))
+
+print("\n===== outer만 필터한 top_subtype 분포 =====")
+print(
+    df[df["item_role"] == "outer"]["top_subtype"]
+    .value_counts(dropna=False)
+    .head(30)
+)
+
+print("\n===== role-aware 정리 후 outer sample =====")
+print(
+    df.loc[
+        df["item_role"] == "outer",
+        ["product_code", "product_name", "category_name", "item_role", "top_subtype"]
+    ]
+    .head(30)
+    .to_string(index=False)
+)
 
 # =========================
 # 21. 최종 저장

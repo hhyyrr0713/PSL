@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>LF Styling Recommendation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; color: #222; }
+    h1 { margin-bottom: 10px; }
+    .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    input, select, button { padding: 10px; font-size: 16px; margin-right: 6px; margin-top: 6px; }
+    input { width: 260px; }
+    select { min-width: 140px; }
+    button { cursor: pointer; border: none; background: #222; color: white; border-radius: 6px; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    label { font-size: 15px; margin-right: 8px; }
+    .search-result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .search-result-item:hover { background: #f2f2f2; }
+    .product-code { font-weight: bold; color: #555; }
+    .meta { font-size: 13px; color: #777; margin-top: 4px; }
+    .pagination { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+    .pagination span { font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; font-size: 14px; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #eee; }
+    .section { margin-top: 30px; }
+    .selected { background: #f0f7ff; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
+    .total-price { font-weight: bold; color: #111; }
+  </style>
+</head>
+
+<body>
+  <h1>LF Styling Recommendation</h1>
+
+  <div class="box">
+    <h2>1. 상품 검색</h2>
+    <p>상품명, 브랜드명, 상품코드와 세부 조건으로 검색하세요.</p>
+
+    <input id="searchKeyword" placeholder="예: 셔츠, 치노, 알레그리" />
+
+    <select id="brandFilter">
+      <option value="">브랜드 전체</option>
+      <option value="알레그리">알레그리</option>
+      <option value="닥스 남성">닥스 남성</option>
+      <option value="헤지스 남성">헤지스 남성</option>
+      <option value="일꼬르소">일꼬르소</option>
+      <option value="질스튜어트뉴욕 남성">질스튜어트뉴욕 남성</option>
+      <option value="티엔지티">티엔지티</option>
+    </select>
+
+    <select id="roleFilter">
+      <option value="">역할 전체</option>
+      <option value="top">상의</option>
+      <option value="bottom">하의</option>
+      <option value="outer">아우터</option>
+    </select>
+
+    <select id="categoryFilter">
+      <option value="">카테고리 전체</option>
+      <option value="셔츠">셔츠</option>
+      <option value="티셔츠">티셔츠</option>
+      <option value="니트">니트</option>
+      <option value="팬츠">팬츠</option>
+      <option value="슬랙스">슬랙스</option>
+      <option value="치노">치노</option>
+      <option value="데님">데님</option>
+      <option value="점퍼">점퍼</option>
+      <option value="자켓">자켓</option>
+      <option value="코트">코트</option>
+    </select>
+
+    <select id="priceFilter">
+      <option value="">가격대 전체</option>
+      <option value="10만원 이하">10만원 이하</option>
+      <option value="10만~50만원">10만~50만원</option>
+      <option value="50만~100만원">50만~100만원</option>
+      <option value="100만원 이상">100만원 이상</option>
+    </select>
+
+    <button onclick="searchProducts()">검색</button>
+
+    <div id="searchResults"></div>
+  </div>
+
+  <div class="box">
+    <h2>2. 추천 설정</h2>
+
+    <p>선택한 상품코드</p>
+    <input id="productCode" value="ARSH5C202CG" />
+
+    <select id="viewType">
+      <option value="all">전체 보기</option>
+      <option value="top">상의 후보</option>
+      <option value="bottom">하의 후보</option>
+      <option value="outer">아우터 후보</option>
+      <option value="two_piece">2피스 추천</option>
+      <option value="three_piece">3피스 추천</option>
+    </select>
+
+    <select id="recommendBrandFilter">
+      <option value="">추천 브랜드 전체</option>
+      <option value="알레그리">알레그리</option>
+      <option value="닥스 남성">닥스 남성</option>
+      <option value="헤지스 남성">헤지스 남성</option>
+      <option value="일꼬르소">일꼬르소</option>
+      <option value="질스튜어트뉴욕 남성">질스튜어트뉴욕 남성</option>
+      <option value="티엔지티">티엔지티</option>
+    </select>
+
+    <select id="recommendCategoryFilter">
+      <option value="">추천 카테고리 전체</option>
+      <option value="셔츠">셔츠</option>
+      <option value="티셔츠">티셔츠</option>
+      <option value="니트">니트</option>
+      <option value="팬츠">팬츠</option>
+      <option value="슬랙스">슬랙스</option>
+      <option value="치노">치노</option>
+      <option value="데님">데님</option>
+      <option value="점퍼">점퍼</option>
+      <option value="자켓">자켓</option>
+      <option value="코트">코트</option>
+    </select>
+
+    <select id="recommendPriceFilter">
+      <option value="">추천 가격대 전체</option>
+      <option value="10만원 이하">10만원 이하</option>
+      <option value="10만~50만원">10만~50만원</option>
+      <option value="50만~100만원">50만~100만원</option>
+      <option value="100만원 이상">100만원 이상</option>
+    </select>
+
+    <label>
+      <input type="checkbox" id="sameBrandOnly" style="width:auto;" />
+      동일 브랜드만 추천
+    </label>
+
+    <button onclick="getRecommendation()">추천 받기</button>
+
+    <div id="selectedProduct"></div>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    let searchProductsCache = [];
+    let currentSearchPage = 1;
+    const searchPageSize = 20;
+
+    let recommendationData = null;
+    let recommendationPages = {
+      top: 1,
+      bottom: 1,
+      outer: 1,
+      two_piece: 1,
+      three_piece: 1
+    };
+
+    const recommendationPageSize = {
+      top: 5,
+      bottom: 5,
+      outer: 5,
+      two_piece: 10,
+      three_piece: 10
+    };
+
+    function formatPrice(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const num = Number(value);
+      if (Number.isNaN(num)) return value;
+      return num.toLocaleString("ko-KR") + "원";
+    }
+
+    async function searchProducts() {
+      const keyword = document.getElementById("searchKeyword").value.trim();
+      const brand = document.getElementById("brandFilter").value;
+      const role = document.getElementById("roleFilter").value;
+      const category = document.getElementById("categoryFilter").value;
+      const priceRange = document.getElementById("priceFilter").value;
+
+      const resultDiv = document.getElementById("searchResults");
+      resultDiv.innerHTML = "<p>검색 중...</p>";
+
+      try {
+        const query = new URLSearchParams({
+          keyword: keyword,
+          brand: brand,
+          role: role,
+          category: category,
+          price_range: priceRange,
+          limit: 200
+        });
+
+        const response = await fetch(`/search?${query.toString()}`);
+        const products = await response.json();
+
+        searchProductsCache = products || [];
+        currentSearchPage = 1;
+
+        renderSearchResults();
+      } catch (error) {
+        resultDiv.innerHTML = `<p>검색 오류: ${error}</p>`;
+      }
+    }
+
+    function renderSearchResults() {
+      const resultDiv = document.getElementById("searchResults");
+
+      if (!searchProductsCache || searchProductsCache.length === 0) {
+        resultDiv.innerHTML = "<p>검색 결과가 없습니다.</p>";
+        return;
+      }
+
+      const totalPages = Math.ceil(searchProductsCache.length / searchPageSize);
+      const startIndex = (currentSearchPage - 1) * searchPageSize;
+      const endIndex = startIndex + searchPageSize;
+      const pageItems = searchProductsCache.slice(startIndex, endIndex);
+
+      let html = `<h3>검색 결과 (${searchProductsCache.length}개)</h3>`;
+
+      pageItems.forEach(product => {
+        html += `
+          <div class="search-result-item" onclick='selectProduct(${JSON.stringify(product)})'>
+            <div>
+              <span class="product-code">${product.product_code}</span>
+              - ${product.product_name}
+              / <b>${formatPrice(product.sale_price)}</b>
+            </div>
+            <div class="meta">
+              브랜드: ${product.brand_name} /
+              역할: ${product.item_role} /
+              카테고리: ${product.category_name ?? ""} /
+              가격대: ${product.price_range ?? ""} /
+              시즌: ${product.season_profile_label ?? ""}
+            </div>
+          </div>
+        `;
+      });
+
+      html += makePagination(
+        currentSearchPage,
+        totalPages,
+        "prevSearchPage()",
+        "nextSearchPage()"
+      );
+
+      resultDiv.innerHTML = html;
+    }
+
+    function prevSearchPage() {
+      if (currentSearchPage > 1) {
+        currentSearchPage -= 1;
+        renderSearchResults();
+      }
+    }
+
+    function nextSearchPage() {
+      const totalPages = Math.ceil(searchProductsCache.length / searchPageSize);
+      if (currentSearchPage < totalPages) {
+        currentSearchPage += 1;
+        renderSearchResults();
+      }
+    }
+
+    function selectProduct(product) {
+      document.getElementById("productCode").value = product.product_code;
+
+      document.getElementById("selectedProduct").innerHTML = `
+        <div class="selected">
+          <b>선택된 상품</b><br>
+          ${product.product_code} - ${product.product_name}<br>
+          판매가: ${formatPrice(product.sale_price)}<br>
+          브랜드: ${product.brand_name} /
+          역할: ${product.item_role} /
+          카테고리: ${product.category_name ?? ""} /
+          시즌: ${product.season_profile_label ?? ""} /
+          가격대: ${product.price_range ?? ""}
+        </div>
+      `;
+    }
+
+    async function getRecommendation() {
+      const code = document.getElementById("productCode").value.trim();
+      const recommendBrand = document.getElementById("recommendBrandFilter").value;
+      const recommendCategory = document.getElementById("recommendCategoryFilter").value;
+      const recommendPrice = document.getElementById("recommendPriceFilter").value;
+      const sameBrandOnly = document.getElementById("sameBrandOnly").checked;
+
+      const resultDiv = document.getElementById("result");
+
+      if (!code) {
+        resultDiv.innerHTML = "<p>상품코드를 입력하세요.</p>";
+        return;
+      }
+
+      resultDiv.innerHTML = "<p>추천 결과 불러오는 중...</p>";
+
+      try {
+        const query = new URLSearchParams({
+          brand: recommendBrand,
+          category: recommendCategory,
+          price_range: recommendPrice,
+          same_brand_only: sameBrandOnly
+        });
+
+        const response = await fetch(`/recommend/${code}?${query.toString()}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          resultDiv.innerHTML = `<p>오류: ${errorText}</p>`;
+          return;
+        }
+
+        recommendationData = await response.json();
+
+        recommendationPages = {
+          top: 1,
+          bottom: 1,
+          outer: 1,
+          two_piece: 1,
+          three_piece: 1
+        };
+
+        renderResult();
+      } catch (error) {
+        resultDiv.innerHTML = `<p>오류 발생: ${error}</p>`;
+      }
+    }
+
+    function renderResult() {
+      if (!recommendationData) return;
+
+      const data = recommendationData;
+      const viewType = document.getElementById("viewType").value;
+      let html = "";
+
+      html += `
+        <div class="box">
+          <h2>기준 상품</h2>
+          <p><b>상품코드:</b> ${data.anchor.product_code}</p>
+          <p><b>상품명:</b> ${data.anchor.product_name}</p>
+          <p><b>판매가:</b> ${formatPrice(data.anchor.sale_price)}</p>
+          <p><b>브랜드:</b> ${data.anchor.brand_name}</p>
+          <p><b>역할:</b> ${data.anchor.item_role}</p>
+          <p><b>카테고리:</b> ${data.anchor.category_name ?? ""}</p>
+          <p><b>시즌:</b> ${data.anchor.season_profile_label}</p>
+          <p><b>가격대:</b> ${data.anchor.price_range ?? ""}</p>
+        </div>
+      `;
+
+      const candidateColumns = [
+        "product_code", "product_name", "sale_price", "brand_name", "season_profile_label"
+      ];
+
+      if (viewType === "all" || viewType === "top") {
+        html += makePagedTable("상의 후보", "top", data.top_candidates, candidateColumns);
+      }
+
+      if (viewType === "all" || viewType === "bottom") {
+        html += makePagedTable("하의 후보", "bottom", data.bottom_candidates, candidateColumns);
+      }
+
+      if (viewType === "all" || viewType === "outer") {
+        html += makePagedTable("아우터 후보", "outer", data.outer_candidates, candidateColumns);
+      }
+
+      const setColumns = [
+        "bottom_product_name", "bottom_sale_price",
+        "top_product_name", "top_sale_price",
+        "outer_product_name", "outer_sale_price",
+        "set_total_sale_price"
+      ];
+
+      if (viewType === "all" || viewType === "two_piece") {
+        html += makePagedTable("2피스 추천", "two_piece", data.two_piece_sets, setColumns);
+      }
+
+      if (viewType === "all" || viewType === "three_piece") {
+        html += makePagedTable("3피스 추천", "three_piece", data.three_piece_sets, setColumns);
+      }
+
+      document.getElementById("result").innerHTML = html;
+    }
+
+    function makePagedTable(title, sectionKey, rows, columns) {
+      if (!rows || rows.length === 0) {
+        return `
+          <div class="section">
+            <h2>${title}</h2>
+            <p>추천 결과 없음</p>
+          </div>
+        `;
+      }
+
+      const pageSize = recommendationPageSize[sectionKey];
+      const currentPage = recommendationPages[sectionKey];
+      const totalPages = Math.ceil(rows.length / pageSize);
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageRows = rows.slice(startIndex, endIndex);
+
+      let html = `
+        <div class="section">
+          <h2>${title} (${rows.length}개)</h2>
+          ${makeTable(pageRows, columns)}
+          ${makePagination(
+            currentPage,
+            totalPages,
+            `prevRecommendationPage('${sectionKey}')`,
+            `nextRecommendationPage('${sectionKey}')`
+          )}
+        </div>
+      `;
+
+      return html;
+    }
+
+    function prevRecommendationPage(sectionKey) {
+      if (recommendationPages[sectionKey] > 1) {
+        recommendationPages[sectionKey] -= 1;
+        renderResult();
+      }
+    }
+
+    function nextRecommendationPage(sectionKey) {
+      if (!recommendationData) return;
+
+      const dataMap = {
+        top: recommendationData.top_candidates,
+        bottom: recommendationData.bottom_candidates,
+        outer: recommendationData.outer_candidates,
+        two_piece: recommendationData.two_piece_sets,
+        three_piece: recommendationData.three_piece_sets
+      };
+
+      const rows = dataMap[sectionKey] || [];
+      const totalPages = Math.ceil(rows.length / recommendationPageSize[sectionKey]);
+
+      if (recommendationPages[sectionKey] < totalPages) {
+        recommendationPages[sectionKey] += 1;
+        renderResult();
+      }
+    }
+
+    function makeTable(rows, columns) {
+      let html = `<table><thead><tr>`;
+
+      columns.forEach(col => {
+        const headerMap = {
+          product_code: "상품코드",
+          product_name: "상품명",
+          sale_price: "판매가",
+          brand_name: "브랜드",
+          season_profile_label: "시즌",
+          bottom_product_name: "하의",
+          bottom_sale_price: "하의 가격",
+          top_product_name: "상의",
+          top_sale_price: "상의 가격",
+          outer_product_name: "아우터",
+          outer_sale_price: "아우터 가격",
+          set_total_sale_price: "세트 총 가격"
+        };
+
+        html += `<th>${headerMap[col] ?? col}</th>`;
+      });
+
+      html += "</tr></thead><tbody>";
+
+      rows.forEach(row => {
+        html += "<tr>";
+        columns.forEach(col => {
+          const value = col.includes("price") ? formatPrice(row[col]) : (row[col] ?? "");
+          const className = col === "set_total_sale_price" ? "total-price" : "";
+          html += `<td class="${className}">${value}</td>`;
+        });
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      return html;
+    }
+
+    function makePagination(currentPage, totalPages, prevFunc, nextFunc) {
+      if (totalPages <= 1) return "";
+
+      return `
+        <div class="pagination">
+          <button onclick="${prevFunc}" ${currentPage <= 1 ? "disabled" : ""}>‹ 이전</button>
+          <span>${currentPage} / ${totalPages}</span>
+          <button onclick="${nextFunc}" ${currentPage >= totalPages ? "disabled" : ""}>다음 ›</button>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

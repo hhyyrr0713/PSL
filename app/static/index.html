@@ -2,46 +2,370 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>LF Styling Recommendation</title>
+  <title>PSL | Personal Styling Lab</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; color: #222; }
-    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-    .logo { height: 42px; object-fit: contain; }
-    .header h1 { margin: 0; }
-    .header p { margin: 4px 0 0 0; color: #666; }
-    h1 { margin-bottom: 10px; }
-    .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    input, select, button { padding: 10px; font-size: 16px; margin-right: 6px; margin-top: 6px; }
-    input { width: 260px; }
-    select { min-width: 140px; }
-    button { cursor: pointer; border: none; background: #222; color: white; border-radius: 6px; }
-    button:disabled { background: #aaa; cursor: not-allowed; }
-    label { font-size: 15px; margin-right: 8px; }
-    .search-result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
-    .search-result-item:hover { background: #f2f2f2; }
-    .product-code { font-weight: bold; color: #555; }
-    .meta { font-size: 13px; color: #777; margin-top: 4px; }
-    .pagination { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
-    .pagination span { font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; font-size: 14px; }
-    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
-    th { background: #eee; }
-    .section { margin-top: 30px; }
-    .selected { background: #f0f7ff; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
-    .total-price { font-weight: bold; color: #111; }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f7f7;
+      color: #222;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .psl-logo {
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      background: #111;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .header p {
+      margin: 5px 0 0 0;
+      color: #666;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 16px;
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+
+    input {
+      width: 260px;
+    }
+
+    select {
+      min-width: 140px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: #222;
+      color: white;
+      border-radius: 6px;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    label {
+      font-size: 15px;
+      margin-right: 8px;
+    }
+
+    .pagination {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pagination span {
+      font-weight: bold;
+    }
+
+    .section {
+      margin-top: 30px;
+    }
+
+    .selected {
+      background: #f0f7ff;
+      padding: 14px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-size: 14px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .selected img {
+      width: 90px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #eee;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .product-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    }
+
+    .product-image-wrap {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: #f1f1f1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 38px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.45);
+      color: white;
+      border: none;
+      z-index: 2;
+      padding: 0;
+      margin: 0;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .image-arrow.left {
+      left: 8px;
+    }
+
+    .image-arrow.right {
+      right: 8px;
+    }
+
+    .image-count {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      background: rgba(0,0,0,0.55);
+      color: white;
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 999px;
+    }
+
+    .product-info {
+      padding: 12px;
+    }
+
+    .product-brand {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .product-name {
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.4;
+      min-height: 40px;
+      margin-bottom: 8px;
+    }
+
+    .product-price {
+      font-size: 15px;
+      font-weight: bold;
+      color: #111;
+      margin-bottom: 6px;
+    }
+
+    .product-code {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 4px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #f2f2f2;
+      color: #555;
+    }
+
+    .anchor-card {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .anchor-image-box {
+      width: 180px;
+      height: 240px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #eee;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .anchor-image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .anchor-info p {
+      margin: 7px 0;
+    }
+
+    .set-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    .set-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .set-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .set-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .set-item {
+      background: #fafafa;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #eee;
+    }
+
+    .set-image-wrap {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: #eee;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .set-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .set-item-name {
+      font-size: 12px;
+      padding: 7px;
+      line-height: 1.4;
+      min-height: 48px;
+    }
+
+    .set-item-price {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 0 7px 8px 7px;
+    }
+
+    .set-total {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      font-weight: bold;
+      color: #111;
+    }
+
+    .set-reason {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .empty-message {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      color: #666;
+      border: 1px solid #eee;
+    }
   </style>
 </head>
 
 <body>
   <div class="header">
-    <img
-      src="https://img.lfmall.co.kr/file/WAS/apps/2024/pfront/logo/lf_logo_pc.svg"
-      alt="LFmall Logo"
-      class="logo"
-    />
+    <div class="psl-logo">PSL</div>
     <div>
-      <h1>Styling Recommendation</h1>
-      <p>LF Mall 남성 패션 상품 기반 스타일링 추천 시스템</p>
+      <h1>PSL</h1>
+      <p>Personal Styling Lab · LF Mall 남성 패션 상품 기반 스타일링 추천 시스템</p>
     </div>
   </div>
 
@@ -101,7 +425,7 @@
     <p>선택한 상품코드</p>
     <input id="productCode" value="ARSH5C202CG" />
 
-    <select id="viewType">
+    <select id="viewType" onchange="renderResult()">
       <option value="all">전체 보기</option>
       <option value="top">상의 후보</option>
       <option value="bottom">하의 후보</option>
@@ -160,6 +484,8 @@
     const searchPageSize = 20;
 
     let recommendationData = null;
+    let imageSlideIndex = {};
+
     let recommendationPages = {
       top: 1,
       bottom: 1,
@@ -181,6 +507,72 @@
       const num = Number(value);
       if (Number.isNaN(num)) return value;
       return num.toLocaleString("ko-KR") + "원";
+    }
+
+    function safeText(value) {
+      if (value === null || value === undefined) return "";
+      return String(value);
+    }
+
+    function imageUrl(value) {
+      if (!value) {
+        return "https://via.placeholder.com/300x400?text=No+Image";
+      }
+      return value;
+    }
+
+    function getProductImages(product) {
+      const images = [
+        product.image_url_00,
+        product.image_url_01,
+        product.image_url_02,
+        product.image_url
+      ].filter(url => url && String(url).trim() !== "");
+
+      return [...new Set(images)];
+    }
+
+    function getSetItemImages(row, role) {
+      const images = [
+        row[`${role}_image_url_00`],
+        row[`${role}_image_url_01`],
+        row[`${role}_image_url_02`],
+        row[`${role}_image_url`]
+      ].filter(url => url && String(url).trim() !== "");
+
+      return [...new Set(images)];
+    }
+
+    function getSlideKey(prefix, codeOrName) {
+      return `${prefix}_${codeOrName}`;
+    }
+
+    function changeImageSlide(key, direction, total) {
+      if (!imageSlideIndex[key]) {
+        imageSlideIndex[key] = 0;
+      }
+
+      imageSlideIndex[key] += direction;
+
+      if (imageSlideIndex[key] < 0) {
+        imageSlideIndex[key] = total - 1;
+      }
+
+      if (imageSlideIndex[key] >= total) {
+        imageSlideIndex[key] = 0;
+      }
+
+      renderSearchResults();
+      renderResult();
+    }
+
+    function encodeProduct(product) {
+      return encodeURIComponent(JSON.stringify(product));
+    }
+
+    function selectProductFromEncoded(encodedProduct) {
+      const product = JSON.parse(decodeURIComponent(encodedProduct));
+      selectProduct(product);
     }
 
     async function searchProducts() {
@@ -219,7 +611,7 @@
       const resultDiv = document.getElementById("searchResults");
 
       if (!searchProductsCache || searchProductsCache.length === 0) {
-        resultDiv.innerHTML = "<p>검색 결과가 없습니다.</p>";
+        resultDiv.innerHTML = "";
         return;
       }
 
@@ -229,25 +621,13 @@
       const pageItems = searchProductsCache.slice(startIndex, endIndex);
 
       let html = `<h3>검색 결과 (${searchProductsCache.length}개)</h3>`;
+      html += `<div class="product-grid">`;
 
       pageItems.forEach(product => {
-        html += `
-          <div class="search-result-item" onclick='selectProduct(${JSON.stringify(product)})'>
-            <div>
-              <span class="product-code">${product.product_code}</span>
-              - ${product.product_name}
-              / <b>${formatPrice(product.sale_price)}</b>
-            </div>
-            <div class="meta">
-              브랜드: ${product.brand_name} /
-              역할: ${product.item_role} /
-              카테고리: ${product.category_name ?? ""} /
-              가격대: ${product.price_range ?? ""} /
-              시즌: ${product.season_profile_label ?? ""}
-            </div>
-          </div>
-        `;
+        html += makeProductCard(product, true);
       });
+
+      html += `</div>`;
 
       html += makePagination(
         currentSearchPage,
@@ -257,6 +637,52 @@
       );
 
       resultDiv.innerHTML = html;
+    }
+
+    function makeProductCard(product, selectable = false) {
+      const onclick = selectable
+        ? `onclick="selectProductFromEncoded('${encodeProduct(product)}')"`
+        : "";
+
+      const images = getProductImages(product);
+      const key = getSlideKey("product", product.product_code);
+      const currentIndex = imageSlideIndex[key] || 0;
+      const currentImage = images[currentIndex] || product.image_url || "";
+
+      return `
+        <div class="product-card" ${onclick}>
+          <div class="product-image-wrap">
+            ${images.length > 1 ? `
+              <button class="image-arrow left" onclick="event.stopPropagation(); changeImageSlide('${key}', -1, ${images.length})">‹</button>
+            ` : ""}
+
+            <img
+              class="product-image"
+              src="${imageUrl(currentImage)}"
+              alt="${safeText(product.product_name)}"
+              onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"
+            />
+
+            ${images.length > 1 ? `
+              <button class="image-arrow right" onclick="event.stopPropagation(); changeImageSlide('${key}', 1, ${images.length})">›</button>
+              <div class="image-count">${currentIndex + 1} / ${images.length}</div>
+            ` : ""}
+          </div>
+
+          <div class="product-info">
+            <div class="product-brand">${safeText(product.brand_name)}</div>
+            <div class="product-name">${safeText(product.product_name)}</div>
+            <div class="product-price">${formatPrice(product.sale_price)}</div>
+            <div class="product-code">${safeText(product.product_code)}</div>
+            <div class="tag-row">
+              ${product.item_role ? `<span class="tag">${product.item_role}</span>` : ""}
+              ${product.category_name ? `<span class="tag">${product.category_name}</span>` : ""}
+              ${product.season_profile_label ? `<span class="tag">${product.season_profile_label}</span>` : ""}
+              ${product.price_range ? `<span class="tag">${product.price_range}</span>` : ""}
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function prevSearchPage() {
@@ -277,16 +703,26 @@
     function selectProduct(product) {
       document.getElementById("productCode").value = product.product_code;
 
+      const images = getProductImages(product);
+      const img = images[0] || product.image_url || "";
+
       document.getElementById("selectedProduct").innerHTML = `
         <div class="selected">
-          <b>선택된 상품</b><br>
-          ${product.product_code} - ${product.product_name}<br>
-          판매가: ${formatPrice(product.sale_price)}<br>
-          브랜드: ${product.brand_name} /
-          역할: ${product.item_role} /
-          카테고리: ${product.category_name ?? ""} /
-          시즌: ${product.season_profile_label ?? ""} /
-          가격대: ${product.price_range ?? ""}
+          <img
+            src="${imageUrl(img)}"
+            alt="${safeText(product.product_name)}"
+            onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"
+          />
+          <div>
+            <b>선택된 상품</b><br>
+            ${safeText(product.product_code)} - ${safeText(product.product_name)}<br>
+            판매가: ${formatPrice(product.sale_price)}<br>
+            브랜드: ${safeText(product.brand_name)} /
+            역할: ${safeText(product.item_role)} /
+            카테고리: ${safeText(product.category_name)} /
+            시즌: ${safeText(product.season_profile_label)} /
+            가격대: ${safeText(product.price_range)}
+          </div>
         </div>
       `;
     }
@@ -346,60 +782,79 @@
       const viewType = document.getElementById("viewType").value;
       let html = "";
 
-      html += `
-        <div class="box">
-          <h2>기준 상품</h2>
-          <p><b>상품코드:</b> ${data.anchor.product_code}</p>
-          <p><b>상품명:</b> ${data.anchor.product_name}</p>
-          <p><b>판매가:</b> ${formatPrice(data.anchor.sale_price)}</p>
-          <p><b>브랜드:</b> ${data.anchor.brand_name}</p>
-          <p><b>역할:</b> ${data.anchor.item_role}</p>
-          <p><b>카테고리:</b> ${data.anchor.category_name ?? ""}</p>
-          <p><b>시즌:</b> ${data.anchor.season_profile_label}</p>
-          <p><b>가격대:</b> ${data.anchor.price_range ?? ""}</p>
-        </div>
-      `;
-
-      const candidateColumns = [
-        "product_code", "product_name", "sale_price", "brand_name", "season_profile_label"
-      ];
+      html += makeAnchorCard(data.anchor);
 
       if (viewType === "all" || viewType === "top") {
-        html += makePagedTable("상의 후보", "top", data.top_candidates, candidateColumns);
+        html += makePagedCandidateCards("상의 후보", "top", data.top_candidates);
       }
 
       if (viewType === "all" || viewType === "bottom") {
-        html += makePagedTable("하의 후보", "bottom", data.bottom_candidates, candidateColumns);
+        html += makePagedCandidateCards("하의 후보", "bottom", data.bottom_candidates);
       }
 
       if (viewType === "all" || viewType === "outer") {
-        html += makePagedTable("아우터 후보", "outer", data.outer_candidates, candidateColumns);
+        html += makePagedCandidateCards("아우터 후보", "outer", data.outer_candidates);
       }
 
-      const setColumns = [
-        "bottom_product_name", "bottom_sale_price",
-        "top_product_name", "top_sale_price",
-        "outer_product_name", "outer_sale_price",
-        "set_total_sale_price"
-      ];
-
       if (viewType === "all" || viewType === "two_piece") {
-        html += makePagedTable("2피스 추천", "two_piece", data.two_piece_sets, setColumns);
+        html += makePagedSetCards("2피스 추천", "two_piece", data.two_piece_sets);
       }
 
       if (viewType === "all" || viewType === "three_piece") {
-        html += makePagedTable("3피스 추천", "three_piece", data.three_piece_sets, setColumns);
+        html += makePagedSetCards("3피스 추천", "three_piece", data.three_piece_sets);
       }
 
       document.getElementById("result").innerHTML = html;
     }
 
-    function makePagedTable(title, sectionKey, rows, columns) {
+    function makeAnchorCard(anchor) {
+      const images = getProductImages(anchor);
+      const key = getSlideKey("anchor", anchor.product_code);
+      const currentIndex = imageSlideIndex[key] || 0;
+      const currentImage = images[currentIndex] || anchor.image_url || "";
+
+      return `
+        <div class="box">
+          <h2>기준 상품</h2>
+          <div class="anchor-card">
+            <div class="anchor-image-box">
+              ${images.length > 1 ? `
+                <button class="image-arrow left" onclick="changeImageSlide('${key}', -1, ${images.length})">‹</button>
+              ` : ""}
+
+              <img
+                src="${imageUrl(currentImage)}"
+                alt="${safeText(anchor.product_name)}"
+                onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"
+              />
+
+              ${images.length > 1 ? `
+                <button class="image-arrow right" onclick="changeImageSlide('${key}', 1, ${images.length})">›</button>
+                <div class="image-count">${currentIndex + 1} / ${images.length}</div>
+              ` : ""}
+            </div>
+
+            <div class="anchor-info">
+              <p><b>상품코드:</b> ${safeText(anchor.product_code)}</p>
+              <p><b>상품명:</b> ${safeText(anchor.product_name)}</p>
+              <p><b>판매가:</b> ${formatPrice(anchor.sale_price)}</p>
+              <p><b>브랜드:</b> ${safeText(anchor.brand_name)}</p>
+              <p><b>역할:</b> ${safeText(anchor.item_role)}</p>
+              <p><b>카테고리:</b> ${safeText(anchor.category_name)}</p>
+              <p><b>시즌:</b> ${safeText(anchor.season_profile_label)}</p>
+              <p><b>가격대:</b> ${safeText(anchor.price_range)}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function makePagedCandidateCards(title, sectionKey, rows) {
       if (!rows || rows.length === 0) {
         return `
           <div class="section">
             <h2>${title}</h2>
-            <p>추천 결과 없음</p>
+            <div class="empty-message">추천 결과 없음</div>
           </div>
         `;
       }
@@ -415,7 +870,15 @@
       let html = `
         <div class="section">
           <h2>${title} (${rows.length}개)</h2>
-          ${makeTable(pageRows, columns)}
+          <div class="product-grid">
+      `;
+
+      pageRows.forEach(row => {
+        html += makeProductCard(row, false);
+      });
+
+      html += `
+          </div>
           ${makePagination(
             currentPage,
             totalPages,
@@ -426,6 +889,123 @@
       `;
 
       return html;
+    }
+
+    function makePagedSetCards(title, sectionKey, rows) {
+      if (!rows || rows.length === 0) {
+        return `
+          <div class="section">
+            <h2>${title}</h2>
+            <div class="empty-message">추천 결과 없음</div>
+          </div>
+        `;
+      }
+
+      const pageSize = recommendationPageSize[sectionKey];
+      const currentPage = recommendationPages[sectionKey];
+      const totalPages = Math.ceil(rows.length / pageSize);
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageRows = rows.slice(startIndex, endIndex);
+
+      let html = `
+        <div class="section">
+          <h2>${title} (${rows.length}개)</h2>
+          <div class="set-grid">
+      `;
+
+      pageRows.forEach((row, index) => {
+        const rank = startIndex + index + 1;
+        html += makeSetCard(row, rank);
+      });
+
+      html += `
+          </div>
+          ${makePagination(
+            currentPage,
+            totalPages,
+            `prevRecommendationPage('${sectionKey}')`,
+            `nextRecommendationPage('${sectionKey}')`
+          )}
+        </div>
+      `;
+
+      return html;
+    }
+
+    function makeSetCard(row, rank) {
+      const hasBottom = !!row.bottom_product_name;
+      const hasTop = !!row.top_product_name;
+      const hasOuter = !!row.outer_product_name;
+
+      let itemHtml = "";
+
+      if (hasOuter) {
+        itemHtml += makeSetItem(row, "outer", "아우터");
+      }
+
+      if (hasTop) {
+        itemHtml += makeSetItem(row, "top", "상의");
+      }
+
+      if (hasBottom) {
+        itemHtml += makeSetItem(row, "bottom", "하의");
+      }
+
+      return `
+        <div class="set-card">
+          <div class="set-title">추천 코디 ${rank}</div>
+          <div class="set-images">
+            ${itemHtml}
+          </div>
+          <div class="set-total">
+            세트 총 가격: ${formatPrice(row.set_total_sale_price)}
+          </div>
+          <div class="set-reason">
+            ${safeText(row.set_reason)}
+          </div>
+        </div>
+      `;
+    }
+
+    function makeSetItem(row, role, roleLabel) {
+      const name = row[`${role}_product_name`];
+      const price = row[`${role}_sale_price`];
+      const images = getSetItemImages(row, role);
+      const code = row[`${role}_product_code`] || name;
+      const key = getSlideKey(`set_${role}`, `${code}_${row.set_score || ""}`);
+      const currentIndex = imageSlideIndex[key] || 0;
+      const currentImage = images[currentIndex] || row[`${role}_image_url`] || "";
+
+      return `
+        <div class="set-item">
+          <div class="set-image-wrap">
+            ${images.length > 1 ? `
+              <button class="image-arrow left" onclick="changeImageSlide('${key}', -1, ${images.length})">‹</button>
+            ` : ""}
+
+            <img
+              src="${imageUrl(currentImage)}"
+              alt="${safeText(name)}"
+              onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"
+            />
+
+            ${images.length > 1 ? `
+              <button class="image-arrow right" onclick="changeImageSlide('${key}', 1, ${images.length})">›</button>
+              <div class="image-count">${currentIndex + 1} / ${images.length}</div>
+            ` : ""}
+          </div>
+
+          <div class="set-item-name">
+            <b>${roleLabel}</b><br>
+            ${safeText(name)}
+          </div>
+          <div class="set-item-price">
+            ${formatPrice(price)}
+          </div>
+        </div>
+      `;
     }
 
     function prevRecommendationPage(sectionKey) {
@@ -453,44 +1033,6 @@
         recommendationPages[sectionKey] += 1;
         renderResult();
       }
-    }
-
-    function makeTable(rows, columns) {
-      let html = `<table><thead><tr>`;
-
-      columns.forEach(col => {
-        const headerMap = {
-          product_code: "상품코드",
-          product_name: "상품명",
-          sale_price: "판매가",
-          brand_name: "브랜드",
-          season_profile_label: "시즌",
-          bottom_product_name: "하의",
-          bottom_sale_price: "하의 가격",
-          top_product_name: "상의",
-          top_sale_price: "상의 가격",
-          outer_product_name: "아우터",
-          outer_sale_price: "아우터 가격",
-          set_total_sale_price: "세트 총 가격"
-        };
-
-        html += `<th>${headerMap[col] ?? col}</th>`;
-      });
-
-      html += "</tr></thead><tbody>";
-
-      rows.forEach(row => {
-        html += "<tr>";
-        columns.forEach(col => {
-          const value = col.includes("price") ? formatPrice(row[col]) : (row[col] ?? "");
-          const className = col === "set_total_sale_price" ? "total-price" : "";
-          html += `<td class="${className}">${value}</td>`;
-        });
-        html += "</tr>";
-      });
-
-      html += "</tbody></table>";
-      return html;
     }
 
     function makePagination(currentPage, totalPages, prevFunc, nextFunc) {

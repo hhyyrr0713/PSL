@@ -12,14 +12,16 @@ from fastapi.staticfiles import StaticFiles
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 STYLING_DIR = os.path.join(BASE_DIR, "styling")
-CSV_PATH = os.path.join(DATA_DIR, "master_table_step4_styling.csv")
+
+# 2차 MVP: 이미지 URL이 포함된 마스터 테이블 사용
+CSV_PATH = os.path.join(DATA_DIR, "master_table_step5_image.csv")
 
 sys.path.append(STYLING_DIR)
 
 from styling_engine import build_styling_sets, get_anchor_item, load_master_table
 
 
-app = FastAPI(title="LF Styling Recommendation API")
+app = FastAPI(title="PSL Personal Styling Lab API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -215,10 +217,15 @@ def search_products(
 
     search_df = search_df.head(limit)
 
+    # 검색 결과 카드 UI에 필요한 image_url 추가
     output_cols = [
         "product_code",
         "product_name",
         "brand_name",
+        "image_url",
+        "image_url_00",
+        "image_url_01",
+        "image_url_02",
         "item_role",
         "category_name",
         "sale_price",
@@ -280,10 +287,15 @@ def recommend(
         two_piece_sets = enrich_set_prices(result["two_piece_sets"])
         three_piece_sets = enrich_set_prices(result["three_piece_sets"])
 
+        # 기준 상품 영역에 image_url 추가
         anchor_cols = [
             "product_code",
             "product_name",
             "brand_name",
+            "image_url",
+            "image_url_00",
+            "image_url_01",
+            "image_url_02",
             "item_role",
             "category_name",
             "sale_price",

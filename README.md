@@ -1,4 +1,4 @@
-# LF 남성 패션 스타일링 추천 시스템
+# PSL(Personal_Styling_Lab) 남성 패션 스타일링 추천 시스템
 
 LF Mall 남성 패션 상품 데이터를 기반으로, 사용자가 선택한 아이템과 어울리는 상의/하의/아우터 및 2피스·3피스 코디를 추천하는 규칙 기반 스타일링 추천 시스템입니다.
 
@@ -242,7 +242,7 @@ HTML, CSS, JavaScript로 구현했습니다.
 ## 9. 프로젝트 구조
 
 ```text
-LFstyle/
+PSL(Personal_Styling_Lab)/
 ├─ app/
 │  ├─ main.py
 │  └─ static/

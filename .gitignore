@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Local environment files
+.env
+.env.*
+*.log
+
+# Local database / user data
+*.db
+*.sqlite
+*.sqlite3
+
+# Kaggle dataset / large files
+archive/
+app/static/images/
+app/static/kaggle_images/
+*.zip
+
+# Generated output
+output/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>PSL 마이페이지</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #f6f4f0;
+      --card: #ffffff;
+      --text: #111111;
+      --sub: #707070;
+      --line: #e7e2dc;
+      --soft: #faf8f4;
+      --dark: #111111;
+      --shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page-wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 28px 48px;
+    }
+
+    .top-nav {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .psl-logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      background: var(--dark);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.4px;
+    }
+
+    .brand-desc {
+      margin: 4px 0 0;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #current-user-text {
+      font-weight: 700;
+      color: #222;
+      margin-right: 4px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: #111;
+      color: white;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover { background: #333; }
+    button:active { transform: translateY(1px); }
+
+    .secondary-button,
+    .ghost-button {
+      background: white;
+      color: #111;
+      border: 1px solid var(--line);
+    }
+
+    .secondary-button:hover,
+    .ghost-button:hover {
+      background: #f4f1ec;
+    }
+
+    .hero {
+      margin-top: 28px;
+      border-radius: 28px;
+      padding: 34px;
+      background: linear-gradient(135deg, #ffffff 0%, #f5efe5 100%);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-kicker {
+      font-size: 13px;
+      font-weight: 800;
+      color: #777;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: -0.8px;
+    }
+
+    .hero p {
+      margin: 10px 0 0;
+      color: #666;
+      line-height: 1.6;
+      max-width: 680px;
+    }
+
+    .summary-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .summary-card {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 7px;
+      font-weight: 700;
+    }
+
+    .summary-value {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .summary-text {
+      color: #666;
+      font-size: 13px;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .mypage-layout {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .side-panel,
+    .content-panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .side-panel {
+      padding: 12px;
+      position: sticky;
+      top: 106px;
+    }
+
+    .tab-button {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 14px;
+      background: transparent;
+      color: #333;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      text-align: left;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+    }
+
+    .tab-button:hover {
+      background: #f7f4ef;
+      color: #111;
+    }
+
+    .tab-button.active {
+      background: #111;
+      color: white;
+    }
+
+    .tab-sub {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.75;
+      margin-top: 3px;
+    }
+
+    .content-panel {
+      padding: 24px;
+      min-height: 600px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.4px;
+    }
+
+    .section-head p,
+    .profile-description {
+      margin: 7px 0 0;
+      color: #666;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .profile-menu {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .accordion-item + .accordion-item { border-top: 1px solid var(--line); }
+
+    .accordion-header {
+      width: 100%;
+      padding: 15px 16px;
+      font-size: 15px;
+      background: #fff;
+      color: #222;
+      border: none;
+      border-radius: 0;
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 20px;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      box-shadow: none;
+    }
+
+    .accordion-header:hover { background: #faf8f4; }
+    .accordion-title { font-weight: 800; }
+
+    .selected-summary {
+      color: #777;
+      font-size: 13px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: right;
+    }
+
+    .arrow {
+      text-align: right;
+      color: #777;
+      font-size: 18px;
+    }
+
+    .checkbox-panel {
+      display: none;
+      padding: 14px 16px 18px;
+      background: #fbfaf7;
+      border-top: 1px solid var(--line);
+    }
+
+    .checkbox-panel.open { display: block; }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 9px;
+    }
+
+    .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 11px;
+      border: 1px solid #e8e3dc;
+      border-radius: 12px;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-option:hover {
+      border-color: #999;
+      background: #fff;
+    }
+
+    .checkbox-option input { width: auto; margin: 0; }
+
+    .color-chip {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    .chip-black { background: #111; }
+    .chip-ivory { background: #f7f1df; }
+    .chip-gray { background: #777; }
+    .chip-blue { background: #357abd; }
+    .chip-navy { background: #13294b; }
+    .chip-beige { background: #c7a77a; }
+    .chip-brown { background: #7a4b2a; }
+    .chip-khaki { background: #5f6b3a; }
+    .chip-red { background: #8b1e2d; }
+    .chip-pink { background: #f2a7bd; }
+    .chip-yellow { background: #f1b73f; }
+    .chip-purple { background: #7452a3; }
+    .chip-silver { background: linear-gradient(135deg, #f4f4f4, #9d9d9d); }
+    .chip-multi { background: linear-gradient(135deg, #111 0 20%, #357abd 20% 40%, #f1b73f 40% 60%, #8b1e2d 60% 80%, #5f6b3a 80%); }
+    .chip-coral { background: #ff7f6e; }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    #profile-message,
+    #wishlist-message {
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .wishlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .wishlist-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.035);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .wishlist-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.08);
+    }
+
+    .wishlist-image-wrap {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: #f1f1f1;
+      overflow: hidden;
+    }
+
+    .wishlist-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .wishlist-info { padding: 13px; }
+    .wishlist-brand { font-size: 13px; color: #666; margin-bottom: 4px; }
+    .wishlist-name { font-size: 14px; font-weight: bold; line-height: 1.4; min-height: 40px; margin-bottom: 8px; }
+    .wishlist-price { font-size: 15px; font-weight: bold; color: #111; margin-bottom: 6px; }
+    .wishlist-code { font-size: 12px; color: #777; margin-bottom: 10px; }
+
+    .wishlist-delete-btn {
+      width: 100%;
+      background: #f8f6f2;
+      color: #222;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      padding: 9px 10px;
+    }
+
+    .wishlist-delete-btn:hover { background: #eeeeee; }
+
+    .empty-message,
+    .coming-soon-box {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      color: #666;
+      background: #fbfaf7;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    .coming-soon-box b { color: #111; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #f4f1ec;
+      color: #555;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 920px) {
+      .mypage-layout { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .top-nav { position: static; }
+    }
+
+    @media (max-width: 640px) {
+      .page-wrap { padding: 18px; }
+      .top-nav { align-items: flex-start; flex-direction: column; }
+      .user-actions { justify-content: flex-start; }
+      .hero { padding: 24px; }
+      .hero h1 { font-size: 28px; }
+      .content-panel { padding: 18px; }
+      .accordion-header { grid-template-columns: 1fr 20px; }
+      .selected-summary { grid-column: 1 / 2; text-align: left; }
+      .arrow { grid-column: 2; grid-row: 1 / 3; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrap">
+    <header class="top-nav">
+      <div class="brand-block">
+        <div class="psl-logo">PSL</div>
+        <div>
+          <h1 class="brand-title">My Page</h1>
+          <p class="brand-desc">Personal Styling Lab · 스타일 프로필과 저장 상품 관리</p>
+        </div>
+      </div>
+
+      <div class="user-actions">
+        <strong id="current-user-text"></strong>
+        <button class="ghost-button" onclick="goMain()">메인으로</button>
+        <button onclick="logoutUser()">로그아웃</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-kicker">STYLE ACCOUNT</div>
+      <h1><span id="summary-user-name">사용자</span>님의 스타일 공간</h1>
+      <p>
+        스타일 프로필은 메인 추천의 개인화 점수에 반영됩니다. 저장한 상품은 위시리스트에서 다시 확인할 수 있고,
+        다음 단계에서는 기준 상품과 추천 맥락까지 함께 저장할 예정입니다.
+      </p>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">STYLE PROFILE</div>
+          <div class="summary-value">개인화 설정</div>
+          <div class="summary-text">선호 무드, 브랜드, 가격대, 핏, 색상, 사용 상황을 관리합니다.</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">WISHLIST</div>
+          <div class="summary-value">단품 저장</div>
+          <div class="summary-text">메인 화면에서 하트로 저장한 상품을 확인하고 삭제합니다.</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">NEXT MVP</div>
+          <div class="summary-value">코디 저장 예정</div>
+          <div class="summary-text">2피스·3피스 코디 위시리스트와 상세 페이지로 확장합니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <main class="mypage-layout">
+      <aside class="side-panel">
+        <button class="tab-button active" data-tab="profile" onclick="setActiveTab('profile')">
+          <span>스타일 프로필<span class="tab-sub">개인화 추천 설정</span></span>
+          <span>›</span>
+        </button>
+        <button class="tab-button" data-tab="wishlist" onclick="setActiveTab('wishlist')">
+          <span>단품 위시리스트<span class="tab-sub">저장 상품 확인</span></span>
+          <span>›</span>
+        </button>
+        <button class="tab-button" data-tab="outfits" onclick="setActiveTab('outfits')">
+          <span>코디 위시리스트<span class="tab-sub">4차 MVP 예정</span></span>
+          <span>›</span>
+        </button>
+      </aside>
+
+      <section class="content-panel">
+        <div id="profileTab" class="tab-panel active">
+          <div class="section-head">
+            <div>
+              <span class="status-pill">Profile Settings</span>
+              <h2>스타일 프로필</h2>
+              <p>선택하지 않은 항목은 전체 허용으로 처리하고, 선택한 항목은 이후 개인화 추천 점수에 반영합니다.</p>
+            </div>
+          </div>
+
+          <div class="profile-menu">
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('preferredMoodPanel')">
+            <span class="accordion-title">선호 무드</span>
+            <span class="selected-summary" id="preferredMoodSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="preferredMoodPanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="preferredMood">
+              <label class="checkbox-option"><input type="checkbox" value="미니멀"> 미니멀</label>
+              <label class="checkbox-option"><input type="checkbox" value="캐주얼"> 캐주얼</label>
+              <label class="checkbox-option"><input type="checkbox" value="포멀"> 포멀</label>
+              <label class="checkbox-option"><input type="checkbox" value="클래식"> 클래식</label>
+              <label class="checkbox-option"><input type="checkbox" value="스트릿"> 스트릿</label>
+              <label class="checkbox-option"><input type="checkbox" value="댄디"> 댄디</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('preferredBrandsPanel')">
+            <span class="accordion-title">선호 브랜드</span>
+            <span class="selected-summary" id="preferredBrandsSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="preferredBrandsPanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="preferredBrands">
+              <label class="checkbox-option"><input type="checkbox" value="알레그리"> ALLEGRI</label>
+              <label class="checkbox-option"><input type="checkbox" value="닥스 남성"> DAKS</label>
+              <label class="checkbox-option"><input type="checkbox" value="헤지스 남성"> HAZZYS</label>
+              <label class="checkbox-option"><input type="checkbox" value="일꼬르소"> ILCORSO</label>
+              <label class="checkbox-option"><input type="checkbox" value="질스튜어트뉴욕 남성"> JILLSTUART NEWYORK</label>
+              <label class="checkbox-option"><input type="checkbox" value="티엔지티"> TNGT</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('preferredPriceRangePanel')">
+            <span class="accordion-title">선호 가격대</span>
+            <span class="selected-summary" id="preferredPriceRangeSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="preferredPriceRangePanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="preferredPriceRange">
+              <label class="checkbox-option"><input type="checkbox" value="10만원 이하"> 10만원 이하</label>
+              <label class="checkbox-option"><input type="checkbox" value="10만~50만원"> 10만~50만원</label>
+              <label class="checkbox-option"><input type="checkbox" value="50만~100만원"> 50만~100만원</label>
+              <label class="checkbox-option"><input type="checkbox" value="100만원 이상"> 100만원 이상</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('preferredFitPanel')">
+            <span class="accordion-title">선호 핏</span>
+            <span class="selected-summary" id="preferredFitSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="preferredFitPanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="preferredFit">
+              <label class="checkbox-option"><input type="checkbox" value="레귤러"> 레귤러</label>
+              <label class="checkbox-option"><input type="checkbox" value="슬림"> 슬림</label>
+              <label class="checkbox-option"><input type="checkbox" value="오버핏"> 오버핏</label>
+              <label class="checkbox-option"><input type="checkbox" value="릴렉스"> 릴렉스</label>
+              <label class="checkbox-option"><input type="checkbox" value="와이드"> 와이드</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('preferredColorsPanel')">
+            <span class="accordion-title">선호 색상</span>
+            <span class="selected-summary" id="preferredColorsSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="preferredColorsPanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="preferredColors">
+              <label class="checkbox-option"><input type="checkbox" value="블랙"><span class="color-chip chip-black"></span> 블랙</label>
+              <label class="checkbox-option"><input type="checkbox" value="화이트/아이보리"><span class="color-chip chip-ivory"></span> 화이트/아이보리</label>
+              <label class="checkbox-option"><input type="checkbox" value="그레이/차콜"><span class="color-chip chip-gray"></span> 그레이/차콜</label>
+              <label class="checkbox-option"><input type="checkbox" value="블루"><span class="color-chip chip-blue"></span> 블루</label>
+              <label class="checkbox-option"><input type="checkbox" value="네이비"><span class="color-chip chip-navy"></span> 네이비</label>
+              <label class="checkbox-option"><input type="checkbox" value="베이지/카멜"><span class="color-chip chip-beige"></span> 베이지/카멜</label>
+              <label class="checkbox-option"><input type="checkbox" value="브라운"><span class="color-chip chip-brown"></span> 브라운</label>
+              <label class="checkbox-option"><input type="checkbox" value="그린/카키"><span class="color-chip chip-khaki"></span> 그린/카키</label>
+              <label class="checkbox-option"><input type="checkbox" value="레드/버건디"><span class="color-chip chip-red"></span> 레드/버건디</label>
+              <label class="checkbox-option"><input type="checkbox" value="핑크"><span class="color-chip chip-pink"></span> 핑크</label>
+              <label class="checkbox-option"><input type="checkbox" value="옐로우/오렌지"><span class="color-chip chip-yellow"></span> 옐로우/오렌지</label>
+              <label class="checkbox-option"><input type="checkbox" value="퍼플"><span class="color-chip chip-purple"></span> 퍼플</label>
+              <label class="checkbox-option"><input type="checkbox" value="실버"><span class="color-chip chip-silver"></span> 실버</label>
+              <label class="checkbox-option"><input type="checkbox" value="멀티컬러"><span class="color-chip chip-multi"></span> 멀티컬러</label>
+              <label class="checkbox-option"><input type="checkbox" value="코랄"><span class="color-chip chip-coral"></span> 코랄</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" onclick="togglePanel('mainOccasionPanel')">
+            <span class="accordion-title">주 사용 상황</span>
+            <span class="selected-summary" id="mainOccasionSummary">전체</span>
+            <span class="arrow">⌄</span>
+          </button>
+          <div id="mainOccasionPanel" class="checkbox-panel">
+            <div class="checkbox-grid" id="mainOccasion">
+              <label class="checkbox-option"><input type="checkbox" value="데일리"> 데일리</label>
+              <label class="checkbox-option"><input type="checkbox" value="학교"> 학교</label>
+              <label class="checkbox-option"><input type="checkbox" value="출근"> 출근</label>
+              <label class="checkbox-option"><input type="checkbox" value="발표"> 발표</label>
+              <label class="checkbox-option"><input type="checkbox" value="데이트"> 데이트</label>
+              <label class="checkbox-option"><input type="checkbox" value="여행"> 여행</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button onclick="saveUserProfile()">스타일 프로필 저장</button>
+        <button class="secondary-button" onclick="goMain()">메인으로 돌아가기</button>
+      </div>
+
+      <p id="profile-message"></p>
+        </div>
+
+        <div id="wishlistTab" class="tab-panel">
+          <div class="section-head">
+            <div>
+              <span class="status-pill">Product Wishlist</span>
+              <h2>단품 위시리스트</h2>
+              <p>메인 화면에서 저장한 단품 상품을 확인하고 삭제할 수 있습니다.</p>
+            </div>
+          </div>
+
+          <div id="favoriteProductsArea"></div>
+          <p id="wishlist-message"></p>
+        </div>
+
+        <div id="outfitsTab" class="tab-panel">
+          <div class="section-head">
+            <div>
+              <span class="status-pill">Outfit Wishlist</span>
+              <h2>코디 위시리스트</h2>
+              <p>2피스와 3피스 추천 코디를 저장하는 영역입니다.</p>
+            </div>
+          </div>
+
+          <div class="coming-soon-box">
+            <b>4차 MVP에서 구현 예정</b><br>
+            이 영역에는 2피스·3피스 추천 조합을 저장하고, 코디 상세 페이지로 이동하는 기능을 붙일 예정입니다.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const profileFields = [
+      ["preferredMood", "preferredMoodSummary"],
+      ["preferredBrands", "preferredBrandsSummary"],
+      ["preferredPriceRange", "preferredPriceRangeSummary"],
+      ["preferredFit", "preferredFitSummary"],
+      ["preferredColors", "preferredColorsSummary"],
+      ["mainOccasion", "mainOccasionSummary"]
+    ];
+
+    function getCurrentUser() {
+      const userId = localStorage.getItem("user_id");
+      const username = localStorage.getItem("username");
+
+      if (!userId || !username) {
+        return null;
+      }
+
+      return {
+        user_id: userId,
+        username: username
+      };
+    }
+
+    function requireLogin() {
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        window.location.href = "/static/login.html";
+        return null;
+      }
+
+      const currentUserText = document.getElementById("current-user-text");
+      if (currentUserText) {
+        currentUserText.textContent = `안녕하세요, ${currentUser.username}님`;
+      }
+
+      return currentUser;
+    }
+
+    function logoutUser() {
+      localStorage.removeItem("user_id");
+      localStorage.removeItem("username");
+      window.location.href = "/static/login.html";
+    }
+
+    function goMain() {
+      window.location.href = "/page";
+    }
+
+    function toggleWishlistPanel() {
+      const panel = document.getElementById("wishlistPanel");
+      const toggleText = document.getElementById("wishlist-toggle-text");
+
+      panel.classList.toggle("open");
+      toggleText.textContent = panel.classList.contains("open") ? "접기" : "펼치기";
+
+      if (panel.classList.contains("open")) {
+        loadFavoriteProducts();
+      }
+    }
+
+    function setWishlistMessage(message, isError = false) {
+      const messageElement = document.getElementById("wishlist-message");
+
+      if (!messageElement) {
+        return;
+      }
+
+      messageElement.textContent = message;
+      messageElement.style.color = isError ? "crimson" : "green";
+    }
+
+    function formatPrice(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const num = Number(value);
+      if (Number.isNaN(num)) return value;
+      return num.toLocaleString("ko-KR") + "원";
+    }
+
+    function safeText(value) {
+      if (value === null || value === undefined) return "";
+      return String(value);
+    }
+
+    function imageUrl(value) {
+      if (!value || value === "nan" || value === "NaN") {
+        return "https://via.placeholder.com/300x400?text=No+Image";
+      }
+
+      return value;
+    }
+
+    function getWishlistImage(product) {
+      return product.image_url_00 || product.image_url || product.image_url_01 || product.image_url_02 || "";
+    }
+
+    async function loadFavoriteProducts() {
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        window.location.href = "/static/login.html";
+        return;
+      }
+
+      const area = document.getElementById("favoriteProductsArea");
+      area.innerHTML = `<p class="empty-message">위시리스트를 불러오는 중입니다...</p>`;
+
+      try {
+        const response = await fetch(`/users/${currentUser.user_id}/favorites/products`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          area.innerHTML = `<p class="empty-message">위시리스트를 불러오지 못했습니다.</p>`;
+          setWishlistMessage(data.detail || "위시리스트 조회에 실패했습니다.", true);
+          return;
+        }
+
+        renderFavoriteProducts(data);
+
+      } catch (error) {
+        console.error(error);
+        area.innerHTML = `<p class="empty-message">위시리스트 조회 중 오류가 발생했습니다.</p>`;
+        setWishlistMessage("위시리스트 조회 중 오류가 발생했습니다.", true);
+      }
+    }
+
+    function renderFavoriteProducts(products) {
+      const area = document.getElementById("favoriteProductsArea");
+
+      if (!products || products.length === 0) {
+        area.innerHTML = `<p class="empty-message">아직 저장한 단품 상품이 없습니다.</p>`;
+        return;
+      }
+
+      let html = `<div class="wishlist-grid">`;
+
+      products.forEach(product => {
+        const img = getWishlistImage(product);
+
+        html += `
+          <div class="wishlist-card">
+            <div class="wishlist-image-wrap">
+              <img
+                class="wishlist-image"
+                src="${imageUrl(img)}"
+                alt="${safeText(product.product_name)}"
+                onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"
+              />
+            </div>
+
+            <div class="wishlist-info">
+              <div class="wishlist-brand">${safeText(product.brand_name)}</div>
+              <div class="wishlist-name">${safeText(product.product_name)}</div>
+              <div class="wishlist-price">${formatPrice(product.sale_price)}</div>
+              <div class="wishlist-code">${safeText(product.product_code)}</div>
+
+              <button
+                class="wishlist-delete-btn"
+                onclick="deleteFavoriteProduct('${safeText(product.product_code)}')"
+              >
+                위시리스트에서 삭제
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      area.innerHTML = html;
+    }
+
+    async function deleteFavoriteProduct(productCode) {
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        window.location.href = "/static/login.html";
+        return;
+      }
+
+      if (!productCode) {
+        setWishlistMessage("상품코드가 없습니다.", true);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/users/${currentUser.user_id}/favorites/products/${productCode}`, {
+          method: "DELETE"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setWishlistMessage(data.detail || "위시리스트 삭제에 실패했습니다.", true);
+          return;
+        }
+
+        setWishlistMessage("위시리스트에서 삭제되었습니다.");
+        loadFavoriteProducts();
+
+      } catch (error) {
+        console.error(error);
+        setWishlistMessage("위시리스트 삭제 중 오류가 발생했습니다.", true);
+      }
+    }
+
+    function toggleMainProfilePanel() {
+      const panel = document.getElementById("profilePanel");
+      const toggleText = document.getElementById("main-profile-toggle-text");
+
+      panel.classList.toggle("open");
+      toggleText.textContent = panel.classList.contains("open") ? "접기" : "펼치기";
+    }
+
+    function togglePanel(panelId) {
+      const panel = document.getElementById(panelId);
+      panel.classList.toggle("open");
+    }
+
+    function setProfileMessage(message, isError = false) {
+      const messageElement = document.getElementById("profile-message");
+
+      if (!messageElement) {
+        return;
+      }
+
+      messageElement.textContent = message;
+      messageElement.style.color = isError ? "crimson" : "green";
+    }
+
+    function getCheckedValues(fieldId) {
+      const checkboxes = document.querySelectorAll(`#${fieldId} input[type="checkbox"]:checked`);
+      return Array.from(checkboxes)
+        .map(checkbox => checkbox.value)
+        .join(",");
+    }
+
+    function setCheckedValues(fieldId, valueString) {
+      const selectedValues = valueString
+        ? String(valueString).split(",").map(value => value.trim()).filter(Boolean)
+        : [];
+
+      const checkboxes = document.querySelectorAll(`#${fieldId} input[type="checkbox"]`);
+
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectedValues.includes(checkbox.value);
+      });
+    }
+
+    function updateSummary(fieldId, summaryId) {
+      const summaryElement = document.getElementById(summaryId);
+
+      if (!summaryElement) {
+        return;
+      }
+
+      const checkedValues = getCheckedValues(fieldId)
+        .split(",")
+        .map(value => value.trim())
+        .filter(Boolean);
+
+      summaryElement.textContent = checkedValues.length > 0
+        ? checkedValues.join(", ")
+        : "전체";
+    }
+
+    function updateAllSummaries() {
+      profileFields.forEach(([fieldId, summaryId]) => {
+        updateSummary(fieldId, summaryId);
+      });
+    }
+
+    async function loadUserProfile() {
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/users/${currentUser.user_id}/profile`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          setProfileMessage(data.detail || "스타일 프로필을 불러오지 못했습니다.", true);
+          return;
+        }
+
+        if (!data.profile) {
+          updateAllSummaries();
+          setProfileMessage("아직 저장된 스타일 프로필이 없습니다.");
+          return;
+        }
+
+        const profile = data.profile;
+
+        setCheckedValues("preferredMood", profile.preferred_mood);
+        setCheckedValues("preferredBrands", profile.preferred_brands);
+        setCheckedValues("preferredPriceRange", profile.preferred_price_range);
+        setCheckedValues("preferredFit", profile.preferred_fit);
+        setCheckedValues("preferredColors", profile.preferred_colors);
+        setCheckedValues("mainOccasion", profile.main_occasion);
+
+        updateAllSummaries();
+        setProfileMessage("저장된 스타일 프로필을 불러왔습니다.");
+
+      } catch (error) {
+        console.error(error);
+        setProfileMessage("스타일 프로필 조회 중 오류가 발생했습니다.", true);
+      }
+    }
+
+    async function saveUserProfile() {
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        window.location.href = "/static/login.html";
+        return;
+      }
+
+      const profileData = {
+        preferred_mood: getCheckedValues("preferredMood"),
+        preferred_brands: getCheckedValues("preferredBrands"),
+        preferred_price_range: getCheckedValues("preferredPriceRange"),
+        preferred_fit: getCheckedValues("preferredFit"),
+        preferred_colors: getCheckedValues("preferredColors"),
+        main_occasion: getCheckedValues("mainOccasion")
+      };
+
+      try {
+        const response = await fetch(`/users/${currentUser.user_id}/profile`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(profileData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setProfileMessage(data.detail || "스타일 프로필 저장에 실패했습니다.", true);
+          return;
+        }
+
+        updateAllSummaries();
+        setProfileMessage("스타일 프로필이 저장되었습니다.");
+
+      } catch (error) {
+        console.error(error);
+        setProfileMessage("스타일 프로필 저장 중 오류가 발생했습니다.", true);
+      }
+    }
+
+
+
+    function setActiveTab(tabKey) {
+      const buttons = document.querySelectorAll(".tab-button");
+      const panels = document.querySelectorAll(".tab-panel");
+
+      buttons.forEach(button => {
+        button.classList.toggle("active", button.dataset.tab === tabKey);
+      });
+
+      panels.forEach(panel => {
+        panel.classList.toggle("active", panel.id === `${tabKey}Tab`);
+      });
+
+      if (tabKey === "wishlist") {
+        loadFavoriteProducts();
+      }
+    }
+
+    function setUserSummary() {
+      const currentUser = getCurrentUser();
+      if (!currentUser) return;
+
+      const summaryName = document.getElementById("summary-user-name");
+      if (summaryName) {
+        summaryName.textContent = currentUser.username;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      requireLogin();
+      setUserSummary();
+      setActiveTab("profile");
+      loadUserProfile();
+
+      profileFields.forEach(([fieldId]) => {
+        const fieldElement = document.getElementById(fieldId);
+
+        if (fieldElement) {
+          fieldElement.addEventListener("change", updateAllSummaries);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

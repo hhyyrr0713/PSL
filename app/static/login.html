@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>PSL 로그인</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #f6f4f0;
+      color: #111;
+    }
+
+    .auth-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+    }
+
+    .auth-visual {
+      position: relative;
+      overflow: hidden;
+      padding: 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(255, 214, 214, 0.85), transparent 28%),
+        radial-gradient(circle at 82% 22%, rgba(213, 226, 255, 0.85), transparent 30%),
+        radial-gradient(circle at 70% 82%, rgba(232, 216, 190, 0.9), transparent 32%),
+        linear-gradient(135deg, #fffaf2 0%, #f7efe7 42%, #ece7ff 100%);
+      color: #111;
+    }
+
+    .fashion-icons {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .fashion-icon {
+      position: absolute;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      box-shadow: 0 14px 34px rgba(17, 17, 17, 0.08);
+      backdrop-filter: blur(10px);
+      transform: rotate(var(--rotate, -14deg));
+      opacity: 0.78;
+    }
+
+    .fashion-icon svg {
+      width: 38px;
+      height: 38px;
+      stroke: rgba(17, 17, 17, 0.72);
+      stroke-width: 1.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+
+    @keyframes floatFashionA {
+      0% {
+        transform: translate(0, 0) rotate(var(--rotate));
+      }
+      50% {
+        transform: translate(16px, -18px) rotate(calc(var(--rotate) + 6deg));
+      }
+      100% {
+        transform: translate(0, 0) rotate(var(--rotate));
+      }
+    }
+
+    @keyframes floatFashionB {
+      0% {
+        transform: translate(0, 0) rotate(var(--rotate));
+      }
+      50% {
+        transform: translate(-18px, 16px) rotate(calc(var(--rotate) - 7deg));
+      }
+      100% {
+        transform: translate(0, 0) rotate(var(--rotate));
+      }
+    }
+
+    @keyframes diagonalDrift {
+      0% {
+        transform: translate(-18px, 18px) rotate(-16deg);
+      }
+      50% {
+        transform: translate(18px, -14px) rotate(-16deg);
+      }
+      100% {
+        transform: translate(-18px, 18px) rotate(-16deg);
+      }
+    }
+
+    .fashion-line {
+      animation: diagonalDrift 12s ease-in-out infinite;
+    }
+
+    .fashion-icon {
+      animation: floatFashionA 6.5s ease-in-out infinite;
+    }
+
+    .fashion-icon.i-shirt {
+      top: 16%;
+      right: 13%;
+      --rotate: 14deg;
+      animation-duration: 6.8s;
+      animation-delay: 0s;
+    }
+
+    .fashion-icon.i-shoe {
+      top: 43%;
+      right: 27%;
+      --rotate: -18deg;
+      animation-name: floatFashionB;
+      animation-duration: 7.6s;
+      animation-delay: -1.4s;
+    }
+
+    .fashion-icon.i-bag {
+      bottom: 15%;
+      right: 10%;
+      --rotate: 11deg;
+      animation-duration: 8.2s;
+      animation-delay: -2.2s;
+    }
+
+    .fashion-icon.i-glasses {
+      top: 24%;
+      left: 8%;
+      --rotate: -12deg;
+      animation-name: floatFashionB;
+      animation-duration: 7.2s;
+      animation-delay: -0.8s;
+    }
+
+    .fashion-icon.i-hanger {
+      bottom: 23%;
+      left: 15%;
+      --rotate: 16deg;
+      animation-duration: 8.8s;
+      animation-delay: -3s;
+    }
+
+    .fashion-line {
+      position: absolute;
+      width: 620px;
+      height: 120px;
+      left: -120px;
+      bottom: 70px;
+      border-radius: 999px;
+      background: rgba(17, 17, 17, 0.055);
+      transform: rotate(-16deg);
+      z-index: 0;
+    }
+
+    .brand-top,
+    .hero-copy,
+    .auth-visual > div:last-child {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .psl-logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      box-shadow: 0 10px 24px rgba(17, 17, 17, 0.12);
+    }
+
+    .brand-top h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-top p {
+      margin: 4px 0 0 0;
+      color: rgba(17, 17, 17, 0.58);
+      font-size: 14px;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+    }
+
+    .hero-copy .eyebrow {
+      display: inline-flex;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      color: rgba(17, 17, 17, 0.72);
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      font-size: 46px;
+      line-height: 1.15;
+      letter-spacing: -1.4px;
+    }
+
+    .hero-copy p {
+      margin: 18px 0 0 0;
+      color: rgba(17, 17, 17, 0.68);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .hero-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .status-pill {
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status-pill.sub {
+      background: rgba(255, 255, 255, 0.66);
+      color: rgba(17, 17, 17, 0.78);
+      border: 1px solid rgba(17, 17, 17, 0.08);
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 34px;
+    }
+
+    .feature-card {
+      padding: 15px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .feature-card span {
+      color: rgba(17, 17, 17, 0.58);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .auth-panel {
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 430px;
+      background: white;
+      padding: 30px;
+      border-radius: 24px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .login-box h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: -0.5px;
+    }
+
+    .login-subtitle {
+      margin: 8px 0 24px 0;
+      color: #777;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #d7d7d7;
+      border-radius: 13px;
+      font-size: 15px;
+      background: #fbfbfb;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #111;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(17,17,17,0.06);
+    }
+
+    .login-button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      border: none;
+      border-radius: 13px;
+      background: #111;
+      color: white;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .login-button:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+
+    .helper-text {
+      margin-top: 12px;
+      color: #888;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .register-link-area {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .register-link-area a {
+      color: #111;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .register-link-area a:hover {
+      text-decoration: underline;
+    }
+
+    #login-message {
+      margin: 14px 0 0 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+
+    @media (prefers-reduced-motion: reduce) {
+      .fashion-icon,
+      .fashion-line {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .auth-page {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-visual {
+        min-height: 360px;
+        padding: 32px;
+      }
+
+      .hero-copy h2 {
+        font-size: 34px;
+      }
+
+      .feature-row {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-panel {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="auth-page">
+    <section class="auth-visual">
+      <div class="fashion-icons" aria-hidden="true">
+        <div class="fashion-line"></div>
+
+        <div class="fashion-icon i-shirt">
+          <svg viewBox="0 0 48 48">
+            <path d="M18 8l6 4 6-4 10 7-5 8-5-3v20H18V20l-5 3-5-8 10-7z"></path>
+          </svg>
+        </div>
+
+        <div class="fashion-icon i-shoe">
+          <svg viewBox="0 0 48 48">
+            <path d="M8 30c7 2 13 2 18-4l5 5c3 3 7 4 11 4v5H8v-10z"></path>
+            <path d="M27 26l4-5"></path>
+          </svg>
+        </div>
+
+        <div class="fashion-icon i-bag">
+          <svg viewBox="0 0 48 48">
+            <path d="M14 18h20l3 22H11l3-22z"></path>
+            <path d="M18 18c0-5 3-9 6-9s6 4 6 9"></path>
+          </svg>
+        </div>
+
+        <div class="fashion-icon i-glasses">
+          <svg viewBox="0 0 48 48">
+            <path d="M6 26c2-6 12-6 16 0 2 3 2 8-4 10-7 2-12-3-12-10z"></path>
+            <path d="M42 26c-2-6-12-6-16 0-2 3-2 8 4 10 7 2 12-3 12-10z"></path>
+            <path d="M22 27h4"></path>
+          </svg>
+        </div>
+
+        <div class="fashion-icon i-hanger">
+          <svg viewBox="0 0 48 48">
+            <path d="M24 13c0-4 5-5 7-2 2 3 0 6-4 8l-17 9c-2 1-1 5 2 5h24c3 0 4-4 2-5l-14-8"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="brand-top">
+        <div class="psl-logo">PSL</div>
+        <div>
+          <h1>PSL</h1>
+          <p>Personal Styling Lab</p>
+        </div>
+      </div>
+
+      <div class="hero-copy">
+        <span class="eyebrow">Kaggle 공개 패션 데이터셋 기반 스타일링 추천 프로토타입</span>
+        <h2>기준 상품을 선택하면<br>어울리는 아이템과 코디를 추천합니다.</h2>
+        <p>
+          Kaggle Fashion Product Images Dataset을 기반으로 상품을 검색하고,
+          사용자의 스타일 프로필을 추천 결과에 반영합니다.
+        </p>
+
+        <div class="hero-status">
+          <span class="status-pill">Kaggle Dataset</span>
+          <span class="status-pill sub">Public Fashion Data</span>
+          <span class="status-pill sub">Learning Prototype</span>
+          <span class="status-pill sub">Non-commercial</span>
+          <span class="status-pill sub">Rule-based Recommendation</span>
+          <span class="status-pill sub">Personalization</span>
+        </div>
+
+        <div class="feature-row">
+          <div class="feature-card">
+            <strong>Kaggle 상품 기반 추천</strong>
+            <span>선택한 Kaggle 상품과 어울리는 상의, 하의, 아우터를 추천합니다.</span>
+          </div>
+          <div class="feature-card">
+            <strong>개인화 반영</strong>
+            <span>마이페이지에 저장한 스타일 프로필을 추천 점수에 반영합니다.</span>
+          </div>
+          <div class="feature-card">
+            <strong>위시리스트</strong>
+            <span>마음에 드는 추천 상품을 저장하고 마이페이지에서 다시 확인합니다.</span>
+          </div>
+        </div>
+      </div>
+
+      <div></div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="login-box">
+        <h2>로그인</h2>
+        <p class="login-subtitle">
+          PSL 계정으로 로그인하고 Kaggle 데이터 기반 개인화 추천을 받아보세요.
+        </p>
+
+        <div class="form-group">
+          <label for="login-username">아이디</label>
+          <input id="login-username" type="text" placeholder="아이디를 입력하세요" autocomplete="username" />
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">비밀번호</label>
+          <input id="login-password" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" />
+        </div>
+
+        <button class="login-button" onclick="loginUser()">로그인</button>
+
+        <p class="helper-text">
+          로그인 후 스타일 프로필, Kaggle 기반 개인화 추천, 위시리스트 기능을 사용할 수 있습니다.
+        </p>
+
+        <p id="login-message"></p>
+
+        <div class="register-link-area">
+          아직 계정이 없나요?
+          <a href="/static/register.html">회원가입</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function setLoginMessage(message, isError = false) {
+      const messageElement = document.getElementById("login-message");
+      messageElement.textContent = message;
+      messageElement.style.color = isError ? "crimson" : "green";
+    }
+
+    async function loginUser() {
+      const username = document.getElementById("login-username").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+
+      if (!username || !password) {
+        setLoginMessage("아이디와 비밀번호를 입력해주세요.", true);
+        return;
+      }
+
+      try {
+        const response = await fetch("/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setLoginMessage(data.detail || "로그인에 실패했습니다.", true);
+          return;
+        }
+
+        localStorage.setItem("user_id", data.user_id);
+        localStorage.setItem("username", data.username);
+
+        setLoginMessage("로그인 성공! PSL 화면으로 이동합니다.");
+
+        setTimeout(function () {
+          window.location.href = "/page";
+        }, 500);
+
+      } catch (error) {
+        console.error(error);
+        setLoginMessage("로그인 요청 중 오류가 발생했습니다.", true);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const userId = localStorage.getItem("user_id");
+      const username = localStorage.getItem("username");
+
+      if (userId && username) {
+        window.location.href = "/page";
+      }
+
+      document.getElementById("login-password").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          loginUser();
+        }
+      });
+
+      document.getElementById("login-username").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          loginUser();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

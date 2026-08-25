@@ -1,3 +1,8 @@
+<img width="2864" height="1454" alt="image" src="https://github.com/user-attachments/assets/be737d47-6d80-4d83-b7e0-bb27ac86a62b" />
+<img width="2832" height="1456" alt="image" src="https://github.com/user-attachments/assets/820636bf-4f01-4bde-8ba0-db0bece49ec0" />
+<img width="2826" height="1458" alt="image" src="https://github.com/user-attachments/assets/b9fb9c6c-254e-4317-a69c-e4c0e37f2ff9" />
+
+
 # PSL: Personal Styling Lab
 
 PSL(Personal Styling Lab)은 Kaggle Fashion Product Images Dataset을 기반으로 상품 검색, 기준 아이템 선택, 상의·하의·아우터 후보 추천, 2피스·3피스 코디 추천까지 제공하는 개인화 패션 스타일링 추천 웹 서비스 프로토타입입니다.
